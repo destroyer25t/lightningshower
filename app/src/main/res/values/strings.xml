@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Ligntning Shower</string>
+
+    <string name="title_activity_fullscreen_camera">FullscreenCameraActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="choose_method_ru">Выберите источник:</string>
+    <string name="fromCamera">Камера</string>
+    <string name="fromPhone">Память телефона</string>
+
+    <string name="title_activity_camera_record">CameraRecordActivity</string>
+</resources>
