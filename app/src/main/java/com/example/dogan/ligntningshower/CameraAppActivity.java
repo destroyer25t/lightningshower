@@ -2,6 +2,7 @@ package com.example.dogan.ligntningshower;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.Image;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -9,13 +10,11 @@ import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.File;
 
-/**
- * Created by dogan on 16.02.2016.
- */
 public class CameraAppActivity extends AppCompatActivity {
     private static final int VIDEO_CAPTURE = 101;
     private Uri fileUri;
@@ -25,20 +24,15 @@ public class CameraAppActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
 
-       Button recordButton =
-                (Button) findViewById(R.id.recordButton);
+        Button recordButton = (Button) findViewById(R.id.recordButton);
 
         if (!hasCamera())
             recordButton.setEnabled(false);
     }
 
     private boolean hasCamera() {
-        if (getPackageManager().hasSystemFeature(
-                PackageManager.FEATURE_CAMERA_ANY)){
-            return true;
-        } else {
-            return false;
-        }
+        return getPackageManager().hasSystemFeature(
+                PackageManager.FEATURE_CAMERA_ANY);
     }
 
     public void startRecording(View view)
