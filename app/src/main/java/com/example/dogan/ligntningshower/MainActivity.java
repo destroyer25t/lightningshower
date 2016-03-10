@@ -1,26 +1,59 @@
 package com.example.dogan.ligntningshower;
 
+import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.SurfaceTexture;
+import android.media.MediaCodec;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.opengl.EGL14;
+import android.opengl.EGLContext;
+import android.opengl.EGLDisplay;
+import android.opengl.EGLSurface;
+import android.opengl.EGLConfig;
+import android.opengl.GLES11Ext;
+import android.opengl.GLES20;
+import android.opengl.Matrix;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
+import android.test.AndroidTestCase;
+import android.util.Log;
+import android.view.Surface;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+
+
+import static junit.framework.Assert.fail;
+
+
 public class MainActivity extends AppCompatActivity {
 
+    private final int Pick_image = 1;
+    private static final String TAG = "Lightning Shower Log";
 
-    private final int Pick_image=1;
-
+    //Стандартная инициализация активити
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -30,44 +63,117 @@ public class MainActivity extends AppCompatActivity {
         ImageView mImageView = (ImageView) findViewById(R.id.testImageView);
     }
 
+
+    //Выбор на радиобаттоне - с камеры или из галереи
     public void onClickbutStart(View view) {
-        RadioButton mRadButFromCamera = (RadioButton)findViewById(R.id.radButFromCamera);
-        RadioButton mRadButFromPhone = (RadioButton)findViewById(R.id.radButFromPhone);
-        if(mRadButFromCamera.isChecked()){
+        RadioButton mRadButFromCamera = (RadioButton) findViewById(R.id.radButFromCamera);
+        RadioButton mRadButFromPhone = (RadioButton) findViewById(R.id.radButFromPhone);
+        if (mRadButFromCamera.isChecked()) {
             Intent intent = new Intent(MainActivity.this, CameraAppActivity.class);
             startActivity(intent);
-        }
-        else if(mRadButFromPhone.isChecked()){
+        } else if (mRadButFromPhone.isChecked()) {
             Intent photoPickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
             photoPickerIntent.setType("video/*");
             startActivityForResult(photoPickerIntent, Pick_image);
         }
     }
 
+    //Принимаем результаты из Активити
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent imageReturnedIntent){
+    protected void onActivityResult(int requestCode, int resultCode, Intent imageReturnedIntent) {
         super.onActivityResult(requestCode, resultCode, imageReturnedIntent);
 
-        switch(requestCode){
+        switch (requestCode) {
             case Pick_image:
-                if(resultCode==RESULT_OK){
-                   // try{
-                        //Получаем URI, преобразуем в битмап, отображаем в ImageView
-                        final Uri imageUri = imageReturnedIntent.getData();
-                        Toast.makeText(this, "Путь к видео:\n" +
-                                getPath(this, imageUri), Toast.LENGTH_LONG).show();
-                        //final InputStream videoStream = getContentResolver().openInputStream(imageUri);
-                        //final InputStream imageStream = getContentResolver().openInputStream(imageUri);
-                        //final Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-                        //mImageView.setImageBitmap(selectedImage);
+                if (resultCode == RESULT_OK) {
+                    // try{
+                    //Получаем URI, преобразуем в битмап, отображаем в ImageView
+                    final Uri imageUri = imageReturnedIntent.getData();
+                    String videopath = getPath(this, imageUri);
+                    Toast.makeText(this, "Путь к видео:\n" +
+                            videopath, Toast.LENGTH_LONG).show();
+                    int frameNumber = 150;
+                    /*ExtractMpegFramesTest emft=new ExtractMpegFramesTest();
+                    try {
+                        emft.testExtractMpegFrames();
+                    } catch (Throwable throwable) {
+                        throwable.printStackTrace();
+                    }*/
+                    sample();
+                    //final InputStream videoStream = getContentResolver().openInputStream(imageUri);
+                    //final InputStream imageStream = getContentResolver().openInputStream(imageUri);
+                    //final Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
+                    //mImageView.setImageBitmap(selectedImage);
 
-                  //  } catch (FileNotFoundException e){
-                     //   e.printStackTrace();
-                   // }
+                    //  } catch (FileNotFoundException e){
+                    //   e.printStackTrace();
+                    // }
                 }
         }
     }
 
+    public void sample(){
+        int FRAME_BYTES=326;
+        int FRAMESMAX=36;
+        String mediaFileName="source.mp4";
+        String filePath=Environment.getExternalStorageDirectory().getPath()+File.separator+mediaFileName;
+        MediaMetadataRetriever mediaMetadata=new MediaMetadataRetriever();
+        Bitmap frame=null;
+        try{
+            mediaMetadata.setDataSource(filePath);
+
+
+            for(int currentFrame=0;currentFrame<FRAMESMAX; currentFrame++){
+                frame=null;
+                if(currentFrame<=0){
+                    frame = mediaMetadata.getFrameAtTime();
+                }else{
+                    frame =   mediaMetadata.getFrameAtTime(FRAME_BYTES*currentFrame*1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC );
+                    //currentFrame++;
+                }
+
+                Log.d(TAG, "Height of frame:"+frame.getHeight());
+            }
+        }catch(Exception e){
+            Log.i(TAG, "  unable to get file descriptor of the frame"+e.toString());
+        }
+    }
+
+
+    //Запись видео в этом же каком-то стандартном активити VIDEO_CAPTURE
+   /* public void onClickbutStart(View view)
+    {
+       // RadioButton mRadButFromCamera = (RadioButton)findViewById(R.id.radButFromCamera);
+        //if(mRadButFromCamera.isChecked()){
+            File mediaFile = new
+                    File(Environment.getExternalStorageDirectory().getAbsolutePath()
+                    + "myvideo.mp4");
+
+            Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+            fileUri = Uri.fromFile(mediaFile);
+
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
+            startActivityForResult(intent, VIDEO_CAPTURE);
+        //}
+
+    }
+    //прием видео из активити выше
+    protected void onActivityResult(int requestCode,
+                                    int resultCode, Intent data) {
+
+        if (requestCode == VIDEO_CAPTURE) {
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(this, "Video has been saved to:\n" +
+                        data.getData(), Toast.LENGTH_LONG).show();
+            } else if (resultCode == RESULT_CANCELED) {
+                Toast.makeText(this, "Video recording cancelled.",
+                        Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Failed to record video",
+                        Toast.LENGTH_LONG).show();
+            }
+        }
+    }*/
 
     /**
      * Get a file path from a Uri. This will get the the path for Storage Access
@@ -75,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
      * other file-based ContentProviders.
      *
      * @param context The context.
-     * @param uri The Uri to query.
+     * @param uri     The Uri to query.
      * @author paulburke
      */
     public static String getPath(final Context context, final Uri uri) {
@@ -119,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 final String selection = "_id=?";
-                final String[] selectionArgs = new String[] {
+                final String[] selectionArgs = new String[]{
                         split[1]
                 };
 
@@ -142,9 +248,9 @@ public class MainActivity extends AppCompatActivity {
      * Get the value of the data column for this Uri. This is useful for
      * MediaStore Uris, and other file-based ContentProviders.
      *
-     * @param context The context.
-     * @param uri The Uri to query.
-     * @param selection (Optional) Filter used in the query.
+     * @param context       The context.
+     * @param uri           The Uri to query.
+     * @param selection     (Optional) Filter used in the query.
      * @param selectionArgs (Optional) Selection arguments used in the query.
      * @return The value of the _data column, which is typically a file path.
      */
@@ -195,37 +301,9 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isMediaDocument(Uri uri) {
         return "com.android.providers.media.documents".equals(uri.getAuthority());
     }
-   /* public void onClickbutStart(View view)
-    {
-       // RadioButton mRadButFromCamera = (RadioButton)findViewById(R.id.radButFromCamera);
-        //if(mRadButFromCamera.isChecked()){
-            File mediaFile = new
-                    File(Environment.getExternalStorageDirectory().getAbsolutePath()
-                    + "myvideo.mp4");
 
-            Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-            fileUri = Uri.fromFile(mediaFile);
 
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
-            startActivityForResult(intent, VIDEO_CAPTURE);
-        //}
+    public void Test1Action(View view) {
 
     }
-
-    protected void onActivityResult(int requestCode,
-                                    int resultCode, Intent data) {
-
-        if (requestCode == VIDEO_CAPTURE) {
-            if (resultCode == RESULT_OK) {
-                Toast.makeText(this, "Video has been saved to:\n" +
-                        data.getData(), Toast.LENGTH_LONG).show();
-            } else if (resultCode == RESULT_CANCELED) {
-                Toast.makeText(this, "Video recording cancelled.",
-                        Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Failed to record video",
-                        Toast.LENGTH_LONG).show();
-            }
-        }
-    }*/
 }
