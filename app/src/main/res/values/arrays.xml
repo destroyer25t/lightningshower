@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="type_decomposing">
+        <item>OPENCV decomposing</item>
+        <item>MediaMetadataRetriever</item>
+    </string-array>
+</resources>

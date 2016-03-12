@@ -1,51 +1,29 @@
 package com.example.dogan.ligntningshower;
 
-import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.AssetFileDescriptor;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.SurfaceTexture;
-import android.media.MediaCodec;
-import android.media.MediaExtractor;
-import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-import android.opengl.EGL14;
-import android.opengl.EGLContext;
-import android.opengl.EGLDisplay;
-import android.opengl.EGLSurface;
-import android.opengl.EGLConfig;
-import android.opengl.GLES11Ext;
-import android.opengl.GLES20;
-import android.opengl.Matrix;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
-import android.test.AndroidTestCase;
 import android.util.Log;
-import android.view.Surface;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-
-
-import static junit.framework.Assert.fail;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -53,21 +31,34 @@ public class MainActivity extends AppCompatActivity {
     private final int Pick_image = 1;
     private static final String TAG = "Lightning Shower Log";
 
+    private SharedPreferences mSettings;
+
     //Стандартная инициализация активити
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
         ImageView mImageView = (ImageView) findViewById(R.id.testImageView);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Intent intent = new Intent();
+        intent.setClass(this, SettingsActivity.class);
+        startActivity(intent);
+        return true;
+    }
     //Выбор на радиобаттоне - с камеры или из галереи
     public void onClickbutStart(View view) {
         RadioButton mRadButFromCamera = (RadioButton) findViewById(R.id.radButFromCamera);
         RadioButton mRadButFromPhone = (RadioButton) findViewById(R.id.radButFromPhone);
+
         if (mRadButFromCamera.isChecked()) {
             Intent intent = new Intent(MainActivity.this, CameraAppActivity.class);
             startActivity(intent);
@@ -90,37 +81,57 @@ public class MainActivity extends AppCompatActivity {
                     //Получаем URI, преобразуем в битмап, отображаем в ImageView
                     final Uri imageUri = imageReturnedIntent.getData();
                     String videopath = getPath(this, imageUri);
-                    Toast.makeText(this, "Путь к видео:\n" +
-                            videopath, Toast.LENGTH_LONG).show();
-                    int frameNumber = 150;
+                    //Toast.makeText(this, "Путь к видео:\n" +
+                         //   videopath, Toast.LENGTH_LONG).show();
+                    Decomposing(videopath);
                     /*ExtractMpegFramesTest emft=new ExtractMpegFramesTest();
                     try {
                         emft.testExtractMpegFrames();
                     } catch (Throwable throwable) {
                         throwable.printStackTrace();
                     }*/
-                    sample();
-                    //final InputStream videoStream = getContentResolver().openInputStream(imageUri);
-                    //final InputStream imageStream = getContentResolver().openInputStream(imageUri);
-                    //final Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-                    //mImageView.setImageBitmap(selectedImage);
-
-                    //  } catch (FileNotFoundException e){
-                    //   e.printStackTrace();
-                    // }
                 }
         }
     }
 
-    public void sample(){
+    public void Decomposing(String videopath){
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String regular="";
+        MediaMetadataRetriever_decomposing(videopath);
+        // получаем выбранный пользователем способ раскадровки
+       /* if (prefs.contains("pref_decompose_mode")) {
+            regular = prefs.getString(getString(R.string.pref_decompose_mode), "");
+        }
+
+        if(regular=="OPENCV decomposing") {
+
+        }
+
+        if(regular=="MediaMetadataRetriever") {
+
+        }*/
+    }
+
+    public void MediaMetadataRetriever_decomposing(String videopath){
+        Double fps = 30.0;
+        MediaMetadataRetriever mediaMetadata=new MediaMetadataRetriever();
+        mediaMetadata.setDataSource(videopath);
+        Bitmap frame=null;
+        Long incrementer = (long) (1000000 / fps);
+
+        String stringDuration = mediaMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);    //длина видео в микросекундах
+        Double durationS = Double.parseDouble(stringDuration)/1000;    //секундах
+        Double hours = durationS / 3600;   //часах
+        Double minutes = (durationS - hours * 3600) / 60;      //минутах
+
+        Toast.makeText(this, "Длина видео:"+durationS, Toast.LENGTH_LONG).show();
         int FRAME_BYTES=326;
         int FRAMESMAX=36;
-        String mediaFileName="source.mp4";
-        String filePath=Environment.getExternalStorageDirectory().getPath()+File.separator+mediaFileName;
-        MediaMetadataRetriever mediaMetadata=new MediaMetadataRetriever();
-        Bitmap frame=null;
+       // String mediaFileName="source.mp4";
+        //String filePath=Environment.getExternalStorageDirectory().getPath()+File.separator+mediaFileName;
+/*
         try{
-            mediaMetadata.setDataSource(filePath);
+            mediaMetadata.setDataSource(videopath);
 
 
             for(int currentFrame=0;currentFrame<FRAMESMAX; currentFrame++){
@@ -136,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }catch(Exception e){
             Log.i(TAG, "  unable to get file descriptor of the frame"+e.toString());
-        }
+        }*/
     }
 
 

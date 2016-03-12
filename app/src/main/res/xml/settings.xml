@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <ListPreference
+        android:key="pref_decompose_mode"
+        android:title="Обработчик видео"
+        android:summary="Устанавливает тип обработчика, который разобьет видео на кадры"
+        android:defaultValue="1"
+        android:entries="@array/type_decomposing"
+        android:entryValues="@array/type_decomposing"
+        android:dialogTitle="Выберите тип разбиения видео на кадры" />
+</PreferenceScreen>
