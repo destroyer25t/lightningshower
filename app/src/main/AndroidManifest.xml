@@ -22,6 +22,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:largeHeap="true"
         android:theme="@style/AppTheme">
         <activity android:name=".MainActivity">
             <intent-filter>
@@ -37,17 +38,7 @@
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".OpenCVExampleActivity"
-            android:label="@string/title_activity_open_cvexample"
-            android:parentActivityName=".MainActivity"
-            android:theme="@style/AppTheme.NoActionBar">
-            android:screenOrientation="landscape"
-            android:configChanges="keyboardHidden|orientation">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.dogan.ligntningshower.MainActivity" />
-        </activity>
+
         <activity android:name=".SettingsActivity" android:label="@string/app_name"></activity>
     </application>
 

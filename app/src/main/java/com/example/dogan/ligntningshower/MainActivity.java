@@ -23,15 +23,19 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 
 
 public class MainActivity extends AppCompatActivity {
 
+
     private final int Pick_image = 1;
     private static final String TAG = "Lightning Shower Log";
-
-    private SharedPreferences mSettings;
 
     //Стандартная инициализация активити
     @Override
@@ -41,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
         ImageView mImageView = (ImageView) findViewById(R.id.testImageView);
     }
 
+    //Активация и показ меню
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -54,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
         return true;
     }
+
     //Выбор на радиобаттоне - с камеры или из галереи
     public void onClickbutStart(View view) {
         RadioButton mRadButFromCamera = (RadioButton) findViewById(R.id.radButFromCamera);
@@ -77,26 +83,20 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case Pick_image:
                 if (resultCode == RESULT_OK) {
-                    // try{
-                    //Получаем URI, преобразуем в битмап, отображаем в ImageView
                     final Uri imageUri = imageReturnedIntent.getData();
                     String videopath = getPath(this, imageUri);
-                    //Toast.makeText(this, "Путь к видео:\n" +
-                         //   videopath, Toast.LENGTH_LONG).show();
-                    Decomposing(videopath);
-                    /*ExtractMpegFramesTest emft=new ExtractMpegFramesTest();
                     try {
-                        emft.testExtractMpegFrames();
-                    } catch (Throwable throwable) {
-                        throwable.printStackTrace();
-                    }*/
+                        Decomposing(videopath);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
         }
     }
 
-    public void Decomposing(String videopath){
+    public void Decomposing(String videopath) throws IOException {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String regular="";
+        String regular = "";
         MediaMetadataRetriever_decomposing(videopath);
         // получаем выбранный пользователем способ раскадровки
        /* if (prefs.contains("pref_decompose_mode")) {
@@ -112,43 +112,64 @@ public class MainActivity extends AppCompatActivity {
         }*/
     }
 
-    public void MediaMetadataRetriever_decomposing(String videopath){
-        Double fps = 30.0;
-        MediaMetadataRetriever mediaMetadata=new MediaMetadataRetriever();
+    /**
+     * Функция для декомпозиции методом MediaMetadataRetriever.
+     *
+     * @param videopath Путь к видео.
+     * @author Oleg Zepp
+     */
+    public void MediaMetadataRetriever_decomposing(String videopath) throws IOException {
+        ArrayList<Bitmap> framesArray = new ArrayList<Bitmap>();
+        MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
         mediaMetadata.setDataSource(videopath);
-        Bitmap frame=null;
-        Long incrementer = (long) (1000000 / fps);
+        Bitmap frame = null;
 
         String stringDuration = mediaMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);    //длина видео в микросекундах
-        Double durationS = Double.parseDouble(stringDuration)/1000;    //секундах
-        Double hours = durationS / 3600;   //часах
-        Double minutes = (durationS - hours * 3600) / 60;      //минутах
+        int durationMs = Integer.parseInt(stringDuration);    //миллисекундах
+        int durationS = durationMs / 1000;    //секундах
+        //int hours = durationS / 3600;   //часах
+        //int minutes = (durationS - hours * 3600) / 60;      //минутах
 
-        Toast.makeText(this, "Длина видео:"+durationS, Toast.LENGTH_LONG).show();
-        int FRAME_BYTES=326;
-        int FRAMESMAX=36;
-       // String mediaFileName="source.mp4";
-        //String filePath=Environment.getExternalStorageDirectory().getPath()+File.separator+mediaFileName;
+        Toast.makeText(this, "Длина видео:" + durationS, Toast.LENGTH_LONG).show();
+
+        long startTime = System.currentTimeMillis();    //засекаем время получения кадров
+
+        for (int currentFrame = 0; currentFrame < 2; currentFrame++) {
+            frame = mediaMetadata.getFrameAtTime(currentFrame * 1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+
+            OpenCVHandler openCVHandler = new OpenCVHandler();
+            openCVHandler.preparingBeforeFindContours(frame);
+            //saveFrames(currentFrame,frame);
+            //framesArray.add(frame);
+        }
+
+        long endTime = System.currentTimeMillis();
+        Log.d(TAG,"Время заноски в массив: " + ((endTime - startTime) / 1000f));
+    }
+
+    public void saveFrames(int numberOfFrame, Bitmap importedFrame) throws IOException {
+
+        String folder = Environment.getExternalStorageDirectory().toString();
+        File saveFolder = new File(folder + "/Movies/new /");
+        if(!saveFolder.exists()){
+            saveFolder.mkdirs();
+        }
+        File f = new File(saveFolder,("frame"+numberOfFrame+".jpg"));
+        FileOutputStream fo = new FileOutputStream(f);
+        importedFrame.compress(Bitmap.CompressFormat.JPEG, 50, fo);
+        fo.flush();
+        fo.close();
+    }
 /*
+
         try{
             mediaMetadata.setDataSource(videopath);
 
 
-            for(int currentFrame=0;currentFrame<FRAMESMAX; currentFrame++){
-                frame=null;
-                if(currentFrame<=0){
-                    frame = mediaMetadata.getFrameAtTime();
-                }else{
-                    frame =   mediaMetadata.getFrameAtTime(FRAME_BYTES*currentFrame*1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC );
-                    //currentFrame++;
-                }
 
-                Log.d(TAG, "Height of frame:"+frame.getHeight());
-            }
         }catch(Exception e){
             Log.i(TAG, "  unable to get file descriptor of the frame"+e.toString());
         }*/
-    }
 
 
     //Запись видео в этом же каком-то стандартном активити VIDEO_CAPTURE
