@@ -23,6 +23,12 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
+import static org.bytedeco.javacpp.opencv_core.*;
+import static org.bytedeco.javacpp.opencv_imgproc.*;
+
+import org.bytedeco.javacpp.opencv_core;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -146,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
         long endTime = System.currentTimeMillis();
         Log.d(TAG,"Время заноски в массив: " + ((endTime - startTime) / 1000f));
     }
+
 
     public void saveFrames(int numberOfFrame, Bitmap importedFrame) throws IOException {
 

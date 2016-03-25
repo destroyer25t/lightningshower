@@ -13,4 +13,5 @@
 
     <string name="title_activity_camera_record">CameraRecordActivity</string>
     <string name="title_activity_open_cvexample">OpenCVExampleActivity</string>
+    <string name="path_to_save_all">Папка для сохранения изображений</string>
 </resources>
