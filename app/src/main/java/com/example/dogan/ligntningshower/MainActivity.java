@@ -39,9 +39,10 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-
+    static final int REQUEST_VIDEO_CAPTURE = 1;
     private final int Pick_image = 1;
     private static final String TAG = "Lightning Shower Log";
+    private Uri imageUri=null;
 
     //Стандартная инициализация активити
     @Override
@@ -72,12 +73,18 @@ public class MainActivity extends AppCompatActivity {
         RadioButton mRadButFromPhone = (RadioButton) findViewById(R.id.radButFromPhone);
 
         if (mRadButFromCamera.isChecked()) {
-            Intent intent = new Intent(MainActivity.this, CameraAppActivity.class);
-            startActivity(intent);
+            dispatchTakeVideoIntent();
         } else if (mRadButFromPhone.isChecked()) {
             Intent photoPickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
             photoPickerIntent.setType("video/*");
             startActivityForResult(photoPickerIntent, Pick_image);
+        }
+    }
+
+    private void dispatchTakeVideoIntent() {
+        Intent takeVideoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+        if (takeVideoIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(takeVideoIntent, REQUEST_VIDEO_CAPTURE);
         }
     }
 
@@ -89,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case Pick_image:
                 if (resultCode == RESULT_OK) {
-                    final Uri imageUri = imageReturnedIntent.getData();
+                    imageUri = imageReturnedIntent.getData();
                     String videopath = getPath(this, imageUri);
                     try {
                         Decomposing(videopath);
@@ -97,6 +104,8 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
+
+
         }
     }
 
@@ -148,23 +157,16 @@ public class MainActivity extends AppCompatActivity {
             //framesArray.add(frame);
         }
 
-
-    }
-
-
-    public void saveFrames(int numberOfFrame, Bitmap importedFrame) throws IOException {
-
-        String folder = Environment.getExternalStorageDirectory().toString();
-        File saveFolder = new File(folder + "/Movies/new /");
-        if(!saveFolder.exists()){
-            saveFolder.mkdirs();
+        boolean isSaveSourceVideo;
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo",true);
+        if(!isSaveSourceVideo){
+            String videoPathToDelete = getPath(this,imageUri);
+            File videoFile = new File(videoPathToDelete);
+            videoFile.deleteOnExit();
         }
-        File f = new File(saveFolder,("frame"+numberOfFrame+".jpg"));
-        FileOutputStream fo = new FileOutputStream(f);
-        importedFrame.compress(Bitmap.CompressFormat.JPEG, 50, fo);
-        fo.flush();
-        fo.close();
     }
+
 /*
 
         try{
