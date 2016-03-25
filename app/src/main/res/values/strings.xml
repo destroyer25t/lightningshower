@@ -9,9 +9,9 @@
     <string name="fromPhone">Память телефона</string>
 
     <string name="action_settings">Настройки</string>
-    <string name="pref_decompose_mode">Обработчик видео</string>
 
     <string name="title_activity_camera_record">CameraRecordActivity</string>
     <string name="title_activity_open_cvexample">OpenCVExampleActivity</string>
     <string name="path_to_save_all">Папка для сохранения изображений</string>
+    <string name="setting_issavesourcevideo">Сохранять исходное видео</string>
 </resources>

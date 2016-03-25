@@ -2,7 +2,7 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <ListPreference
         android:key="pref_decompose_mode"
-        android:title="@string/pref_decompose_mode"
+        android:title="Обработчик видео"
         android:summary="Устанавливает тип обработчика, который разобьет видео на кадры"
         android:defaultValue="1"
         android:entries="@array/type_decomposing"
@@ -14,4 +14,9 @@
         android:summary="Папка в которую будут сохраняться готовые изображения"
         android:defaultValue="14"
         android:dialogTitle="Введите полный путь" />
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="isSaveSourceVideo"
+        android:summary="Сохранять исходное видео при работе в режиме КАМЕРА"
+        android:title="@string/setting_issavesourcevideo"/>
 </PreferenceScreen>

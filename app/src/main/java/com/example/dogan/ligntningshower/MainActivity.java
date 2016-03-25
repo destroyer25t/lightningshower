@@ -128,29 +128,27 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<Bitmap> framesArray = new ArrayList<Bitmap>();
         MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
         mediaMetadata.setDataSource(videopath);
+        OpenCVHandler openCVHandler = new OpenCVHandler();
         Bitmap frame = null;
 
         String stringDuration = mediaMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);    //длина видео в микросекундах
         int durationMs = Integer.parseInt(stringDuration);    //миллисекундах
         int durationS = durationMs / 1000;    //секундах
-        //int hours = durationS / 3600;   //часах
-        //int minutes = (durationS - hours * 3600) / 60;      //минутах
 
         Toast.makeText(this, "Длина видео:" + durationS, Toast.LENGTH_LONG).show();
 
-        long startTime = System.currentTimeMillis();    //засекаем время получения кадров
 
         for (int currentFrame = 0; currentFrame < 2; currentFrame++) {
+            //long startTime = System.currentTimeMillis();    //засекаем время получения кадро
             frame = mediaMetadata.getFrameAtTime(currentFrame * 1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-
-            OpenCVHandler openCVHandler = new OpenCVHandler();
+            //long endTime = System.currentTimeMillis();
+            //Log.d(TAG,"Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
             openCVHandler.preparingBeforeFindContours(frame);
             //saveFrames(currentFrame,frame);
             //framesArray.add(frame);
         }
 
-        long endTime = System.currentTimeMillis();
-        Log.d(TAG,"Время заноски в массив: " + ((endTime - startTime) / 1000f));
+
     }
 
 
