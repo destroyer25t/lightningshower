@@ -7,6 +7,7 @@
     <string name="choose_method_ru">Выберите источник:</string>
     <string name="fromCamera">Камера</string>
     <string name="fromPhone">Память телефона</string>
+    <string name="fromOPENCV">Камера(OPENCV)</string>
 
     <string name="action_settings">Настройки</string>
 
@@ -14,4 +15,5 @@
     <string name="title_activity_open_cvexample">OpenCVExampleActivity</string>
     <string name="path_to_save_all">Папка для сохранения изображений</string>
     <string name="setting_issavesourcevideo">Сохранять исходное видео</string>
+    <string name="title_activity_opencv_camera_activity">opencv_camera_activity</string>
 </resources>

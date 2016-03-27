@@ -39,6 +39,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
+    private int typeOfHandling=0;
     static final int REQUEST_VIDEO_CAPTURE = 1;
     private final int Pick_image = 1;
     private static final String TAG = "Lightning Shower Log";
@@ -71,13 +72,20 @@ public class MainActivity extends AppCompatActivity {
     public void onClickbutStart(View view) {
         RadioButton mRadButFromCamera = (RadioButton) findViewById(R.id.radButFromCamera);
         RadioButton mRadButFromPhone = (RadioButton) findViewById(R.id.radButFromPhone);
+        RadioButton mRadButFROMopencv = (RadioButton) findViewById(R.id.radButLiveCamera);
 
         if (mRadButFromCamera.isChecked()) {
+            typeOfHandling=2;
             dispatchTakeVideoIntent();
         } else if (mRadButFromPhone.isChecked()) {
+            typeOfHandling=1;
             Intent photoPickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
             photoPickerIntent.setType("video/*");
             startActivityForResult(photoPickerIntent, Pick_image);
+        } else if (mRadButFROMopencv.isChecked()){
+            typeOfHandling=3;
+            Intent liveCameraIntent = new Intent(MainActivity.this, OpenCVCameraActivity.class);
+            startActivity(liveCameraIntent);
         }
     }
 
@@ -148,71 +156,32 @@ public class MainActivity extends AppCompatActivity {
 
 
         for (int currentFrame = 0; currentFrame < 2; currentFrame++) {
-            //long startTime = System.currentTimeMillis();    //засекаем время получения кадро
+            long startTime = System.currentTimeMillis();    //засекаем время получения кадро
             frame = mediaMetadata.getFrameAtTime(currentFrame * 1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-            //long endTime = System.currentTimeMillis();
-            //Log.d(TAG,"Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
+            long endTime = System.currentTimeMillis();
+            Log.d(TAG,"Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
             openCVHandler.preparingBeforeFindContours(frame);
             //saveFrames(currentFrame,frame);
             //framesArray.add(frame);
         }
 
-        boolean isSaveSourceVideo;
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo",true);
-        if(!isSaveSourceVideo){
-            String videoPathToDelete = getPath(this,imageUri);
-            File videoFile = new File(videoPathToDelete);
-            videoFile.deleteOnExit();
+        if(typeOfHandling==2){
+            boolean isSaveSourceVideo;
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo",true);
+            if(!isSaveSourceVideo){
+
+                String videoPathToDelete = getPath(this,imageUri);
+                Log.d(TAG,"Надо бы удалить " + videoPathToDelete);
+                File videoFile = new File(videoPathToDelete);
+                videoFile.delete();
+            }
         }
+
     }
 
 /*
 
-        try{
-            mediaMetadata.setDataSource(videopath);
-
-
-
-        }catch(Exception e){
-            Log.i(TAG, "  unable to get file descriptor of the frame"+e.toString());
-        }*/
-
-
-    //Запись видео в этом же каком-то стандартном активити VIDEO_CAPTURE
-   /* public void onClickbutStart(View view)
-    {
-       // RadioButton mRadButFromCamera = (RadioButton)findViewById(R.id.radButFromCamera);
-        //if(mRadButFromCamera.isChecked()){
-            File mediaFile = new
-                    File(Environment.getExternalStorageDirectory().getAbsolutePath()
-                    + "myvideo.mp4");
-
-            Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-            fileUri = Uri.fromFile(mediaFile);
-
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
-            startActivityForResult(intent, VIDEO_CAPTURE);
-        //}
-
-    }
-    //прием видео из активити выше
-    protected void onActivityResult(int requestCode,
-                                    int resultCode, Intent data) {
-
-        if (requestCode == VIDEO_CAPTURE) {
-            if (resultCode == RESULT_OK) {
-                Toast.makeText(this, "Video has been saved to:\n" +
-                        data.getData(), Toast.LENGTH_LONG).show();
-            } else if (resultCode == RESULT_CANCELED) {
-                Toast.makeText(this, "Video recording cancelled.",
-                        Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Failed to record video",
-                        Toast.LENGTH_LONG).show();
-            }
-        }
-    }*/
 
     /**
      * Get a file path from a Uri. This will get the the path for Storage Access

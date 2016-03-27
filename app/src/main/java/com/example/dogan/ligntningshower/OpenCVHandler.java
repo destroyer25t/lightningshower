@@ -23,21 +23,21 @@ public class OpenCVHandler {
     private int MINAREA = 65000;    //регулируя это задаем величину минимальной площадь контура, после которого он начинает считаться молнией
     private int DOFFSET = 195;    //для демонстрации значение порога задано сразу
 
-    /*static {
-        System.loadLibrary("opencv_core");
-        System.loadLibrary("jniopencv_core");
-    }*/
 
     private boolean findCountoursDetection(double areaImage, IplImage Iat) {
         CvMemStorage storage = cvCreateMemStorage(0);
         CvSeq contours = new CvSeq();
         CvRect rect = null;
         //находим контуры
+        long startTime = System.currentTimeMillis();    //засекаем время получения кадро
         int contoursCont = cvFindContours(Iat, storage, contours, sizeof(CvContour.class), CV_RETR_LIST, CV_LINK_RUNS, cvPoint(0, 0));
-        Log.d("TRULALA", Integer.toString(contoursCont));
+        long endTime = System.currentTimeMillis();
+        Log.d("TRULALA","Время работы cvFindContours: " + ((endTime - startTime) / 1000f));
+       // Log.d("TRULALA", Integer.toString(contoursCont));
         //нарисуем контуры
         boolean isdetected = false;
         int counter = 0;
+        startTime = System.currentTimeMillis();
         if (contoursCont >= 0) {
             for (CvSeq seq0 = contours; seq0 != null; seq0 = seq0.h_next()) {
                 double area = Math.abs(cvContourArea(seq0));    //площадь контура
@@ -52,6 +52,8 @@ public class OpenCVHandler {
             }
 
         }//Log.d("TRULALA", "Молния найдена");
+        endTime = System.currentTimeMillis();
+        Log.d("TRULALA","Время работы цикла: " + ((endTime - startTime) / 1000f));
         return false;
     }
 
@@ -75,8 +77,7 @@ public class OpenCVHandler {
         //контуры
         if (findCountoursDetection(areaImage, Iat)) {
             saveBitmapToPhone(image);
-        }
-        ;
+        };
     }
 
     void saveBitmapToPhone(Bitmap image) {
