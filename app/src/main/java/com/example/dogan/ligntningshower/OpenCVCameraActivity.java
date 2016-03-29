@@ -9,6 +9,7 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.Display;
@@ -43,7 +44,7 @@ public class OpenCVCameraActivity extends Activity implements OnClickListener{
 
     private PowerManager.WakeLock mWakeLock;
 
-    private String ffmpeg_link = "/mnt/sdcard/stream.flv";
+    private String ffmpeg_link = Environment.getExternalStorageDirectory().getAbsolutePath()+"stream.flv";
 
     long startTime = 0;
     boolean recording = false;

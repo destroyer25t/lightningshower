@@ -57,11 +57,9 @@ public class OpenCVHandler {
         return false;
     }
 
-    void preparingBeforeFindContours(Bitmap image) {
+    void preparingBeforeFindContours(Bitmap image, int numberOfFrame, String fileOfName) {
         Igray = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 1);
         Icolor = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 4);
-        //Icolor=cvLoadImage("/mnt/sdcard/20.jpg", CV_LOAD_IMAGE_COLOR));
-        //Icolor = cvLoadImage("/mnt/sdcard/20.jpg");
         image.copyPixelsToBuffer(Icolor.getByteBuffer());
         cvCvtColor(Icolor, Igray, CV_RGB2GRAY);
         double areaImage = (Igray.height() * Igray.width()) / MINAREA;
@@ -71,21 +69,19 @@ public class OpenCVHandler {
         //БИНАРИЗАЦИЯ
         Iat = cvCreateImage(cvGetSize(Igray), IPL_DEPTH_8U, 1);
         cvThreshold(Igray, Iat, offset, 255, CV_THRESH_BINARY);
-        //Bitmap x = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
-        //x.copyPixelsFromBuffer(Iat.getByteBuffer());
 
         //контуры
         if (findCountoursDetection(areaImage, Iat)) {
-            saveBitmapToPhone(image);
+            saveBitmapToPhone(image, fileOfName , numberOfFrame);
         };
     }
 
-    void saveBitmapToPhone(Bitmap image) {
-        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath();
+    void saveBitmapToPhone(Bitmap image, String fileOfName, int counter) {
+        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath()+File.separator+"Movies";
         File dir = new File(file_path);
         if (!dir.exists())
             dir.mkdirs();
-        File file = new File(dir, "newfile.png");
+        File file = new File(dir, fileOfName+counter+".jpg");
         FileOutputStream fOut = null;
         try {
             fOut = new FileOutputStream(file);
@@ -102,7 +98,7 @@ public class OpenCVHandler {
         }
 
 
-        image.compress(Bitmap.CompressFormat.PNG, 50, fOut);
+        image.compress(Bitmap.CompressFormat.JPEG, 50, fOut);
         try {
             fOut.flush();
             fOut.close();

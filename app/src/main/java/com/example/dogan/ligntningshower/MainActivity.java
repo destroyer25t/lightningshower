@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -27,7 +28,12 @@ import static org.bytedeco.javacpp.opencv_core.*;
 import static org.bytedeco.javacpp.opencv_imgproc.*;
 
 import org.bytedeco.javacpp.opencv_core;
+import org.bytedeco.javacv.AndroidFrameConverter;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.FrameGrabber;
+import org.bytedeco.javacv.OpenCVFrameConverter;
+import org.bytedeco.javacv.OpenCVFrameGrabber;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -35,15 +41,17 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity {
 
-    private int typeOfHandling=0;
+    private int typeOfHandling = 0;
     static final int REQUEST_VIDEO_CAPTURE = 1;
     private final int Pick_image = 1;
     private static final String TAG = "Lightning Shower Log";
-    private Uri imageUri=null;
+    private Uri imageUri = null;
+    SharedPreferences prefs;
 
     //Стандартная инициализация активити
     @Override
@@ -75,15 +83,15 @@ public class MainActivity extends AppCompatActivity {
         RadioButton mRadButFROMopencv = (RadioButton) findViewById(R.id.radButLiveCamera);
 
         if (mRadButFromCamera.isChecked()) {
-            typeOfHandling=2;
+            typeOfHandling = 2;
             dispatchTakeVideoIntent();
         } else if (mRadButFromPhone.isChecked()) {
-            typeOfHandling=1;
+            typeOfHandling = 1;
             Intent photoPickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
             photoPickerIntent.setType("video/*");
             startActivityForResult(photoPickerIntent, Pick_image);
-        } else if (mRadButFROMopencv.isChecked()){
-            typeOfHandling=3;
+        } else if (mRadButFROMopencv.isChecked()) {
+            typeOfHandling = 3;
             Intent liveCameraIntent = new Intent(MainActivity.this, OpenCVCameraActivity.class);
             startActivity(liveCameraIntent);
         }
@@ -118,21 +126,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void Decomposing(String videopath) throws IOException {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String regular = "";
-        MediaMetadataRetriever_decomposing(videopath);
-        // получаем выбранный пользователем способ раскадровки
-       /* if (prefs.contains("pref_decompose_mode")) {
-            regular = prefs.getString(getString(R.string.pref_decompose_mode), "");
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String typeOfDecomposing = prefs.getString("pref_decompose_mode","OPENCVdecomposing");
+        if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
+            javaCV_decomposing(videopath);
+        } else {
+           MediaMetadataRetriever_decomposing(videopath);
         }
 
-        if(regular=="OPENCV decomposing") {
-
-        }
-
-        if(regular=="MediaMetadataRetriever") {
-
-        }*/
     }
 
     /**
@@ -142,12 +145,15 @@ public class MainActivity extends AppCompatActivity {
      * @author Oleg Zepp
      */
     public void MediaMetadataRetriever_decomposing(String videopath) throws IOException {
-        ArrayList<Bitmap> framesArray = new ArrayList<Bitmap>();
         MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
-        mediaMetadata.setDataSource(videopath);
         OpenCVHandler openCVHandler = new OpenCVHandler();
         Bitmap frame = null;
+        String videofileName = getFileName(videopath);
+        //устанавливаем источник для mediadata
+        mediaMetadata.setDataSource(videopath);
 
+
+        //получаем длину видео в миллисекундах
         String stringDuration = mediaMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);    //длина видео в микросекундах
         int durationMs = Integer.parseInt(stringDuration);    //миллисекундах
         int durationS = durationMs / 1000;    //секундах
@@ -155,43 +161,80 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "Длина видео:" + durationS, Toast.LENGTH_LONG).show();
 
 
-        for (int currentFrame = 0; currentFrame < 2; currentFrame++) {
-            long startTime = System.currentTimeMillis();    //засекаем время получения кадро
-            frame = mediaMetadata.getFrameAtTime(currentFrame * 1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+        for (int currentFrame = 33333; currentFrame < durationMs * 1000; currentFrame += 33333) {
+            long startTime = System.currentTimeMillis();    //засекаем время получения кадра
+            frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
             long endTime = System.currentTimeMillis();
-            Log.d(TAG,"Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
-            openCVHandler.preparingBeforeFindContours(frame);
-            //saveFrames(currentFrame,frame);
-            //framesArray.add(frame);
+            Log.d(TAG, "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
+            //openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName);
         }
 
-        if(typeOfHandling==2){
+        if (typeOfHandling == 2) {
             boolean isSaveSourceVideo;
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-            isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo",true);
-            if(!isSaveSourceVideo){
-
-                String videoPathToDelete = getPath(this,imageUri);
-                Log.d(TAG,"Надо бы удалить " + videoPathToDelete);
-                File videoFile = new File(videoPathToDelete);
-                videoFile.delete();
+            prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo", true);
+            if (!isSaveSourceVideo) {
+                deleteVideoAfterProcessing();
             }
         }
 
     }
 
-/*
-
 
     /**
-     * Get a file path from a Uri. This will get the the path for Storage Access
-     * Framework Documents, as well as the _data field for the MediaStore and
-     * other file-based ContentProviders.
+     * Функция для декомпозиции методом FFmpeg.
      *
-     * @param context The context.
-     * @param uri     The Uri to query.
-     * @author paulburke
+     * @param videopath Путь к видео.
+     * @author Oleg Zepp
      */
+    public void javaCV_decomposing(String videopath) {
+        File videoFile = new File(videopath);
+        Bitmap bitmapVideoFrame = null;
+        Frame videoframe = null;
+        Mat videoMat = null;
+        int framesCounter = 0;
+        String videofileName = getFileName(videopath);
+        OpenCVHandler openCVHandler = new OpenCVHandler();
+
+        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videopath);
+        AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
+        OpenCVFrameConverter.ToMat converterToMat = new OpenCVFrameConverter.ToMat();
+
+        try {
+            grabber.start();
+        } catch (FrameGrabber.Exception e) {
+            e.printStackTrace();
+        }
+        while (true) {
+            long startTime = System.currentTimeMillis();    //засекаем время получения кадра
+            try {
+                videoframe = grabber.grab();
+            } catch (FrameGrabber.Exception e) {
+                e.printStackTrace();
+            }
+            bitmapVideoFrame = converterToBitmap.convert(videoframe);
+            long endTime = System.currentTimeMillis();
+            Log.d(TAG, "Время выдергивания из видоса OPENCV: " + ((endTime - startTime) / 1000f));
+            framesCounter++;
+            //openCVHandler.preparingBeforeFindContours(bitmapVideoFrame,framesCounter,videofileName);
+        }
+
+
+    }
+
+    /*
+
+
+
+        /**
+         * Get a file path from a Uri. This will get the the path for Storage Access
+         * Framework Documents, as well as the _data field for the MediaStore and
+         * other file-based ContentProviders.
+         *
+         * @param context The context.
+         * @param uri     The Uri to query.
+         * @author paulburke
+         */
     public static String getPath(final Context context, final Uri uri) {
 
         final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
@@ -313,5 +356,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void Test1Action(View view) {
 
+    }
+
+    void deleteVideoAfterProcessing() {
+
+        String videoPathToDelete = getPath(this, imageUri);
+        Log.d(TAG, "Надо бы удалить " + videoPathToDelete);
+        File videoFile = new File(videoPathToDelete);
+        videoFile.delete();
+
+    }
+
+    public static String getFileName(String fullpath) {
+        String[] split = fullpath.split("/");
+        String nameOfFile = split[split.length - 1];
+        return nameOfFile;
     }
 }
