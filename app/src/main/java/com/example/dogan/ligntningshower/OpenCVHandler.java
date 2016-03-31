@@ -15,7 +15,8 @@ import static org.bytedeco.javacpp.opencv_imgcodecs.cvLoadImage;
 import static org.bytedeco.javacpp.opencv_imgproc.*;
 
 /**
- * Created by dogan on 18.03.2016.
+ * Created by dogan on 18.03.2016
+ * commit before transfering to AsyncTask
  */
 public class OpenCVHandler {
     public IplImage Igray = null, Iat = null, Icolor = null;
