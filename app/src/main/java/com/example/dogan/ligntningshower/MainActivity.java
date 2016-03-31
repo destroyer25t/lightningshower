@@ -7,7 +7,6 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,23 +23,13 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
-import static org.bytedeco.javacpp.opencv_core.*;
-import static org.bytedeco.javacpp.opencv_imgproc.*;
-
-import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacv.AndroidFrameConverter;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber;
-import org.bytedeco.javacv.OpenCVFrameConverter;
-import org.bytedeco.javacv.OpenCVFrameGrabber;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Objects;
 
 
@@ -127,7 +116,6 @@ public class MainActivity extends AppCompatActivity {
 
     public void Decomposing(String videopath) throws IOException {
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String regular = "";
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String typeOfDecomposing = prefs.getString("pref_decompose_mode","OPENCVdecomposing");
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
@@ -147,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
     public void MediaMetadataRetriever_decomposing(String videopath) throws IOException {
         MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
         OpenCVHandler openCVHandler = new OpenCVHandler();
-        Bitmap frame = null;
+        Bitmap frame;
         String videofileName = getFileName(videopath);
         //устанавливаем источник для mediadata
         mediaMetadata.setDataSource(videopath);
@@ -158,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
         int durationMs = Integer.parseInt(stringDuration);    //миллисекундах
         int durationS = durationMs / 1000;    //секундах
 
-        Toast.makeText(this, "Длина видео:" + durationS, Toast.LENGTH_LONG).show();
+       // Toast.makeText(this, "Длина видео:" + durationS, Toast.LENGTH_LONG).show();
 
 
         for (int currentFrame = 33333; currentFrame < durationMs * 1000; currentFrame += 33333) {
@@ -166,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
             frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
             long endTime = System.currentTimeMillis();
             Log.d(TAG, "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
-            //openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName);
+            openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName);
         }
 
         if (typeOfHandling == 2) {
@@ -188,17 +176,15 @@ public class MainActivity extends AppCompatActivity {
      * @author Oleg Zepp
      */
     public void javaCV_decomposing(String videopath) {
-        File videoFile = new File(videopath);
-        Bitmap bitmapVideoFrame = null;
+        //File videoFile = new File(videopath); to delete
+        Bitmap bitmapVideoFrame;
         Frame videoframe = null;
-        Mat videoMat = null;
         int framesCounter = 0;
         String videofileName = getFileName(videopath);
         OpenCVHandler openCVHandler = new OpenCVHandler();
 
         FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videopath);
         AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
-        OpenCVFrameConverter.ToMat converterToMat = new OpenCVFrameConverter.ToMat();
 
         try {
             grabber.start();
@@ -216,17 +202,13 @@ public class MainActivity extends AppCompatActivity {
             long endTime = System.currentTimeMillis();
             Log.d(TAG, "Время выдергивания из видоса OPENCV: " + ((endTime - startTime) / 1000f));
             framesCounter++;
-            //openCVHandler.preparingBeforeFindContours(bitmapVideoFrame,framesCounter,videofileName);
+            openCVHandler.preparingBeforeFindContours(bitmapVideoFrame,framesCounter,videofileName);
         }
 
 
     }
 
-    /*
-
-
-
-        /**
+    /**
          * Get a file path from a Uri. This will get the the path for Storage Access
          * Framework Documents, as well as the _data field for the MediaStore and
          * other file-based ContentProviders.
@@ -372,4 +354,6 @@ public class MainActivity extends AppCompatActivity {
         String nameOfFile = split[split.length - 1];
         return nameOfFile;
     }
+
+
 }
