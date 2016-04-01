@@ -212,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            // TODO: придумать как передавать длину видео в PreExecute
             //horizontalprogress.setMax(300);
             Toast.makeText(getApplicationContext(), "Обработка видео запущена", Toast.LENGTH_LONG).show();
 
