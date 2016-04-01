@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -20,6 +21,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
@@ -31,6 +33,7 @@ import org.bytedeco.javacv.FrameGrabber;
 import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -121,49 +124,9 @@ public class MainActivity extends AppCompatActivity {
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
             javaCV_decomposing(videopath);
         } else {
-           MediaMetadataRetriever_decomposing(videopath);
-        }
+            MediaMetadataRetriever_Decomposing_Task MediaMRetr = new MediaMetadataRetriever_Decomposing_Task();
+            MediaMRetr.execute(videopath);
 
-    }
-
-    /**
-     * Функция для декомпозиции методом MediaMetadataRetriever.
-     *
-     * @param videopath Путь к видео.
-     * @author Oleg Zepp
-     */
-    public void MediaMetadataRetriever_decomposing(String videopath) throws IOException {
-        MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
-        OpenCVHandler openCVHandler = new OpenCVHandler();
-        Bitmap frame;
-        String videofileName = getFileName(videopath);
-        //устанавливаем источник для mediadata
-        mediaMetadata.setDataSource(videopath);
-
-
-        //получаем длину видео в миллисекундах
-        String stringDuration = mediaMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);    //длина видео в микросекундах
-        int durationMs = Integer.parseInt(stringDuration);    //миллисекундах
-        int durationS = durationMs / 1000;    //секундах
-
-       // Toast.makeText(this, "Длина видео:" + durationS, Toast.LENGTH_LONG).show();
-
-
-        for (int currentFrame = 33333; currentFrame < durationMs * 1000; currentFrame += 33333) {
-            long startTime = System.currentTimeMillis();    //засекаем время получения кадра
-            frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
-            long endTime = System.currentTimeMillis();
-            Log.d(TAG, "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
-            openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName);
-        }
-
-        if (typeOfHandling == 2) {
-            boolean isSaveSourceVideo;
-            prefs = PreferenceManager.getDefaultSharedPreferences(this);
-            isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo", true);
-            if (!isSaveSourceVideo) {
-                deleteVideoAfterProcessing();
-            }
         }
 
     }
@@ -202,11 +165,114 @@ public class MainActivity extends AppCompatActivity {
             long endTime = System.currentTimeMillis();
             Log.d(TAG, "Время выдергивания из видоса OPENCV: " + ((endTime - startTime) / 1000f));
             framesCounter++;
-            openCVHandler.preparingBeforeFindContours(bitmapVideoFrame,framesCounter,videofileName);
+            openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, framesCounter, videofileName);
         }
 
 
     }
+
+  /*  class JavaCV_Decomposing_Task extends AsyncTask <String, Integer, Void>{
+
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarProgress);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            Toast.makeText(getApplicationContext(), "Обработка видео запущена", Toast.LENGTH_LONG).show();
+
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+          javaCV_decomposing(params[0]);return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            Toast.makeText(getApplicationContext(), "Обработка видео окончена", Toast.LENGTH_LONG).show();
+        }
+
+
+
+    } */
+
+    class MediaMetadataRetriever_Decomposing_Task extends AsyncTask<String, Integer, Void> {
+        ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarProgress);
+
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            super.onProgressUpdate(progress);
+            horizontalprogress.setProgress(progress[0] / 33333);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            //horizontalprogress.setMax(300);
+            Toast.makeText(getApplicationContext(), "Обработка видео запущена", Toast.LENGTH_LONG).show();
+
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+            Log.d(TAG, "Старт doInBackground");
+            MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
+            OpenCVHandler openCVHandler = new OpenCVHandler();
+            Bitmap frame;
+            String videofileName = getFileName(params[0]);
+            //устанавливаем источник для mediadata
+            mediaMetadata.setDataSource(params[0]);
+
+
+            //получаем длину видео в миллисекундах
+            String stringDuration = mediaMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);    //длина видео в микросекундах
+            int durationMs = Integer.parseInt(stringDuration);    //миллисекундах
+            int durationS = durationMs / 1000;    //секундах
+
+            for (int currentFrame = 33333; currentFrame < durationMs * 1000; currentFrame += 33333) {
+                long startTime = System.currentTimeMillis();    //засекаем время получения кадра
+                frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
+                long endTime = System.currentTimeMillis();
+                Log.d(TAG, "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
+                openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName);
+                publishProgress(currentFrame);
+            }
+
+            if (typeOfHandling == 2) {
+                boolean isSaveSourceVideo;
+                prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo", true);
+                if (!isSaveSourceVideo) {
+                    deleteVideoAfterProcessing();
+                }
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            Toast.makeText(getApplicationContext(), "Обработка видео окончена", Toast.LENGTH_LONG).show();
+        }
+
+
+        /**
+         * Функция для декомпозиции методом MediaMetadataRetriever.
+         *
+         * @param videopath Путь к видео.
+         * @author Oleg Zepp
+         */
+        public void MediaMetadataRetriever_decomposing(String videopath) throws IOException {
+
+
+        }
+    }
+
 
     /**
          * Get a file path from a Uri. This will get the the path for Storage Access
