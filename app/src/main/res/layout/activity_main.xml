@@ -16,15 +16,17 @@
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="Выберите режим фиксации:"
         android:id="@+id/textView"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_above="@+id/radioGroup"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="24dp" />
 
     <RadioGroup
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/textView"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="33dp">
+        android:id="@+id/radioGroup"
+        android:layout_above="@+id/butStart"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="26dp">
         <RadioButton android:id="@+id/radButFromPhone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -54,5 +56,43 @@
         android:id="@+id/testImageView"
         android:layout_centerVertical="true"
         android:layout_alignEnd="@+id/textView" />
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBarProgress"
+        android:layout_marginTop="62dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Прогресс"
+        android:id="@+id/tvProgress"
+        android:layout_alignBottom="@+id/progressBarProgress"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="29dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Кадров обработано:"
+        android:id="@+id/textView2"
+        android:layout_alignBaseline="@+id/tvFramesFromFramesAll"
+        android:layout_alignBottom="@+id/tvFramesFromFramesAll"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="0/0"
+        android:id="@+id/tvFramesFromFramesAll"
+        android:layout_below="@+id/progressBarProgress"
+        android:layout_alignEnd="@+id/progressBarProgress" />
 
 </RelativeLayout>
