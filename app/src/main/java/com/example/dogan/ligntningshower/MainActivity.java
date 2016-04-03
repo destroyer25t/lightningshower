@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Movie;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -23,6 +26,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.bytedeco.javacv.AndroidFrameConverter;
@@ -119,14 +123,29 @@ public class MainActivity extends AppCompatActivity {
 
     public void Decomposing(String videopath) throws IOException {
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String typeOfDecomposing = prefs.getString("pref_decompose_mode","OPENCVdecomposing");
+        String typeOfDecomposing = prefs.getString("pref_decompose_mode", "OPENCVdecomposing");
+
+        //получаем длительность видоса сразу же
+        MediaMetadataRetriever mediaMetadataForGettingDuration = new MediaMetadataRetriever();
+        mediaMetadataForGettingDuration.setDataSource(videopath);
+        String stringDuration = mediaMetadataForGettingDuration.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);    //длина видео в микросекундах
+        int durationMs = Integer.parseInt(stringDuration);
+
+        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videopath);
+
+        try {
+            grabber.start();
+        } catch (FrameGrabber.Exception e) {
+            e.printStackTrace();
+        }
+
+        double frameRate = grabber.getFrameRate();
+
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
             javaCV_decomposing(videopath);
         } else {
-            MediaMetadataRetriever_Decomposing_Task MediaMRetr = new MediaMetadataRetriever_Decomposing_Task();
+            MediaMetadataRetriever_Decomposing_Task MediaMRetr = new MediaMetadataRetriever_Decomposing_Task(durationMs, frameRate);
             MediaMRetr.execute(videopath);
-
         }
 
     }
@@ -145,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
         int framesCounter = 0;
         String videofileName = getFileName(videopath);
         OpenCVHandler openCVHandler = new OpenCVHandler();
+
 
         FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videopath);
         AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
@@ -171,76 +191,70 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-  /*  class JavaCV_Decomposing_Task extends AsyncTask <String, Integer, Void>{
 
-        @Override
-        protected void onProgressUpdate(Integer... progress) {
-            ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarProgress);
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            Toast.makeText(getApplicationContext(), "Обработка видео запущена", Toast.LENGTH_LONG).show();
-
-        }
-
-        @Override
-        protected Void doInBackground(String... params) {
-          javaCV_decomposing(params[0]);return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void result) {
-            super.onPostExecute(result);
-            Toast.makeText(getApplicationContext(), "Обработка видео окончена", Toast.LENGTH_LONG).show();
-        }
-
-
-
-    } */
-
-    class MediaMetadataRetriever_Decomposing_Task extends AsyncTask<String, Integer, Void> {
+    protected class MediaMetadataRetriever_Decomposing_Task extends AsyncTask<String, Integer, Void> {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarProgress);
+        TextView textviewCountSeconds = (TextView) findViewById(R.id.tvSecOfVideoProcessed);
+        private int durationMs; //длительность видео
+        private int frameRate;
+        private int frameStep;
+
+        //переопределяем конструктор класса для возможности передавать левые аргументы
+        public MediaMetadataRetriever_Decomposing_Task(int duration, double frameRateTemp) {
+            super();
+            durationMs = duration;        //продолжительность видео в миллисекундах
+            frameRate = (int) frameRateTemp;  //FPS видео
+            frameStep = (int) (1000000 / frameRateTemp); //1000000/FPS - через каждые frameStep микросекунд следует брать новый кадр
+        }
 
         @Override
         protected void onProgressUpdate(Integer... progress) {
             super.onProgressUpdate(progress);
-            horizontalprogress.setProgress(progress[0] / 33333);
+            horizontalprogress.setProgress(progress[0] / frameStep);
+            textviewCountSeconds.setText(String.valueOf(progress[1]));
+            //textviewCountSeconds.setText();
         }
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            // TODO: придумать как передавать длину видео в PreExecute
-            //horizontalprogress.setMax(300);
+            horizontalprogress.setMax(durationMs / frameRate);
+
             Toast.makeText(getApplicationContext(), "Обработка видео запущена", Toast.LENGTH_LONG).show();
 
         }
 
         @Override
         protected Void doInBackground(String... params) {
-            Log.d(TAG, "Старт doInBackground");
+
             MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
             OpenCVHandler openCVHandler = new OpenCVHandler();
             Bitmap frame;
             String videofileName = getFileName(params[0]);
+
+            int counterFrames = 0;        //счетчик кадров
+            int counterSeconds = 0;       //счетчик обработанных секунд
+
             //устанавливаем источник для mediadata
             mediaMetadata.setDataSource(params[0]);
 
-
-            //получаем длину видео в миллисекундах
-            String stringDuration = mediaMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);    //длина видео в микросекундах
-            int durationMs = Integer.parseInt(stringDuration);    //миллисекундах
             int durationS = durationMs / 1000;    //секундах
 
-            for (int currentFrame = 33333; currentFrame < durationMs * 1000; currentFrame += 33333) {
+            for (int currentFrame = frameStep; currentFrame < durationMs * 1000; currentFrame += frameStep) {
+                counterFrames++;
+                Log.d(TAG, "Кадр видео: " + currentFrame / frameStep);
+                if (counterFrames == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
+                    counterFrames = 0;
+                    counterSeconds++;
+                    Log.d(TAG, "Секунда видео: " + counterSeconds);
+                }
+
                 long startTime = System.currentTimeMillis();    //засекаем время получения кадра
                 frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
                 long endTime = System.currentTimeMillis();
                 Log.d(TAG, "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
                 openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName);
-                publishProgress(currentFrame);
+                publishProgress(currentFrame, counterSeconds);
             }
 
             if (typeOfHandling == 2) {
@@ -422,5 +436,23 @@ public class MainActivity extends AppCompatActivity {
         return nameOfFile;
     }
 
+    /**
+     * Selects the video track, if any.
+     *
+     * @return the track index, or -1 if no video track is found.
+     */
+    private int selectTrack(MediaExtractor extractor) {
+        // Select the first video track we find, ignore the rest.
+        int numTracks = extractor.getTrackCount();
+        for (int i = 0; i < numTracks; i++) {
+            MediaFormat format = extractor.getTrackFormat(i);
+            String mime = format.getString(MediaFormat.KEY_MIME);
+            if (mime.startsWith("video/")) {
+                Log.d(TAG, "Extractor selected track " + i + " (" + mime + "): " + format);
+                return i;
+            }
+        }
 
+        return -1;
+    }
 }
