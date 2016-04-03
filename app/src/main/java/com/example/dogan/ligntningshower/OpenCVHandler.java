@@ -33,7 +33,7 @@ public class OpenCVHandler {
         long startTime = System.currentTimeMillis();    //засекаем время получения кадро
         int contoursCont = cvFindContours(Iat, storage, contours, sizeof(CvContour.class), CV_RETR_LIST, CV_LINK_RUNS, cvPoint(0, 0));
         long endTime = System.currentTimeMillis();
-        Log.d("TRULALA","Время работы cvFindContours: " + ((endTime - startTime) / 1000f));
+        Log.d("TRULALA", "Время работы cvFindContours: " + ((endTime - startTime) / 1000f));
        // Log.d("TRULALA", Integer.toString(contoursCont));
         //нарисуем контуры
         boolean isdetected = false;
@@ -54,27 +54,31 @@ public class OpenCVHandler {
 
         }//Log.d("TRULALA", "Молния найдена");
         endTime = System.currentTimeMillis();
-        Log.d("TRULALA","Время работы цикла: " + ((endTime - startTime) / 1000f));
+        Log.d("TRULALA", "Время работы цикла: " + ((endTime - startTime) / 1000f));
         return false;
     }
 
     void preparingBeforeFindContours(Bitmap image, int numberOfFrame, String fileOfName) {
-        Igray = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 1);
-        Icolor = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 4);
-        image.copyPixelsToBuffer(Icolor.getByteBuffer());
-        cvCvtColor(Icolor, Igray, CV_RGB2GRAY);
-        double areaImage = (Igray.height() * Igray.width()) / MINAREA;
+        if (image != null) {
+            Igray = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 1);
+            Icolor = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 4);
+            image.copyPixelsToBuffer(Icolor.getByteBuffer());
+            cvCvtColor(Icolor, Igray, CV_RGB2GRAY);
+            double areaImage = (Igray.height() * Igray.width()) / MINAREA;
 
-        double offset = DOFFSET;
+            double offset = DOFFSET;
 
-        //БИНАРИЗАЦИЯ
-        Iat = cvCreateImage(cvGetSize(Igray), IPL_DEPTH_8U, 1);
-        cvThreshold(Igray, Iat, offset, 255, CV_THRESH_BINARY);
+            //БИНАРИЗАЦИЯ
+            Iat = cvCreateImage(cvGetSize(Igray), IPL_DEPTH_8U, 1);
+            cvThreshold(Igray, Iat, offset, 255, CV_THRESH_BINARY);
 
-        //контуры
-        if (findCountoursDetection(areaImage, Iat)) {
-            saveBitmapToPhone(image, fileOfName , numberOfFrame);
-        };
+            //контуры
+            if (findCountoursDetection(areaImage, Iat)) {
+                saveBitmapToPhone(image, fileOfName, numberOfFrame);
+            }
+            ;
+        }
+
     }
 
     void saveBitmapToPhone(Bitmap image, String fileOfName, int counter) {
