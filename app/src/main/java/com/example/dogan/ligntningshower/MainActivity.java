@@ -23,6 +23,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
@@ -47,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private final int Pick_image = 1;
     private static final String TAG = "Lightning Shower Log";
     private Uri imageUri = null;
+    MediaMetadataRetriever_Decomposing_Task MediaMRetr;
     SharedPreferences prefs;
 
     //Стандартная инициализация активити
@@ -77,20 +79,33 @@ public class MainActivity extends AppCompatActivity {
         RadioButton mRadButFromCamera = (RadioButton) findViewById(R.id.radButFromCamera);
         RadioButton mRadButFromPhone = (RadioButton) findViewById(R.id.radButFromPhone);
         RadioButton mRadButFROMopencv = (RadioButton) findViewById(R.id.radButLiveCamera);
+        Button buttonStart = (Button) findViewById(R.id.butStart);
 
-        if (mRadButFromCamera.isChecked()) {
-            typeOfHandling = 2;
-            dispatchTakeVideoIntent();
-        } else if (mRadButFromPhone.isChecked()) {
-            typeOfHandling = 1;
-            Intent photoPickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
-            photoPickerIntent.setType("video/*");
-            startActivityForResult(photoPickerIntent, Pick_image);
-        } else if (mRadButFROMopencv.isChecked()) {
-            typeOfHandling = 3;
-            Intent liveCameraIntent = new Intent(MainActivity.this, OpenCVCameraActivity.class);
-            startActivity(liveCameraIntent);
+        if (MediaMRetr != null) {
+            if (MediaMRetr.getStatus().toString() == "RUNNING") {
+                MediaMRetr.cancel(false);
+                buttonStart.setText("СТАРТ");
+
+            }
         }
+        //TODO:Пока невозможен повторный запуск, нужно придумать другое условие проверки
+        else {
+            if (mRadButFromCamera.isChecked()) {
+                typeOfHandling = 2;
+                dispatchTakeVideoIntent();
+            } else if (mRadButFromPhone.isChecked()) {
+                typeOfHandling = 1;
+                Intent photoPickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                photoPickerIntent.setType("video/*");
+                startActivityForResult(photoPickerIntent, Pick_image);
+            } else if (mRadButFROMopencv.isChecked()) {
+                typeOfHandling = 3;
+                Intent liveCameraIntent = new Intent(MainActivity.this, OpenCVCameraActivity.class);
+                startActivity(liveCameraIntent);
+            }
+        }
+
+
     }
 
     private void dispatchTakeVideoIntent() {
@@ -144,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
             javaCV_decomposing(videopath);
         } else {
-            MediaMetadataRetriever_Decomposing_Task MediaMRetr = new MediaMetadataRetriever_Decomposing_Task(durationMs, frameRate);
+            MediaMRetr = new MediaMetadataRetriever_Decomposing_Task(durationMs, frameRate);
             MediaMRetr.execute(videopath);
         }
 
@@ -195,6 +210,8 @@ public class MainActivity extends AppCompatActivity {
     protected class MediaMetadataRetriever_Decomposing_Task extends AsyncTask<String, Integer, Void> {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarProgress);
         TextView textviewCountSeconds = (TextView) findViewById(R.id.tvSecOfVideoProcessed);
+        TextView textViewCountLightnings = (TextView) findViewById(R.id.tvCountLightnings);
+        Button buttonStart = (Button) findViewById(R.id.butStart);
         private int durationMs; //длительность видео
         private int frameRate;
         private int frameStep;
@@ -208,32 +225,39 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            horizontalprogress.setMax(durationMs / frameRate);
+            horizontalprogress.setProgress(0);
+
+            buttonStart.setText("СТОП");
+            Toast.makeText(getApplicationContext(), "Обработка видео запущена", Toast.LENGTH_LONG).show();
+
+        }
+
+        @Override
         protected void onProgressUpdate(Integer... progress) {
             super.onProgressUpdate(progress);
             horizontalprogress.setProgress(progress[0] / frameStep);
             textviewCountSeconds.setText(String.valueOf(progress[1]));
+            textViewCountLightnings.setText(String.valueOf(progress[2]));
             //textviewCountSeconds.setText();
         }
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            horizontalprogress.setMax(durationMs / frameRate);
 
-            Toast.makeText(getApplicationContext(), "Обработка видео запущена", Toast.LENGTH_LONG).show();
-
-        }
 
         @Override
         protected Void doInBackground(String... params) {
 
             MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
             OpenCVHandler openCVHandler = new OpenCVHandler();
-            Bitmap frame;
-            String videofileName = getFileName(params[0]);
 
             int counterFrames = 0;        //счетчик кадров
             int counterSeconds = 0;       //счетчик обработанных секунд
+            int counterLightnings = 0;     //счетчик молний
+
+            String videofileName = getFileName(params[0]);
+            Bitmap frame;
 
             //устанавливаем источник для mediadata
             mediaMetadata.setDataSource(params[0]);
@@ -253,8 +277,10 @@ public class MainActivity extends AppCompatActivity {
                 frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
                 long endTime = System.currentTimeMillis();
                 Log.d(TAG, "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
-                openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName);
-                publishProgress(currentFrame, counterSeconds);
+                if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName)) {
+                    counterLightnings++;
+                }
+                publishProgress(currentFrame, counterSeconds, counterLightnings);
             }
 
             if (typeOfHandling == 2) {
@@ -272,6 +298,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void result) {
             super.onPostExecute(result);
+            buttonStart.setText("СТАРТ");
             Toast.makeText(getApplicationContext(), "Обработка видео окончена", Toast.LENGTH_LONG).show();
         }
 
