@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.Movie;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
@@ -38,7 +37,6 @@ import org.bytedeco.javacv.FrameGrabber;
 import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -48,7 +46,8 @@ public class MainActivity extends AppCompatActivity {
     private final int Pick_image = 1;
     private static final String TAG = "Lightning Shower Log";
     private Uri imageUri = null;
-    MediaMetadataRetriever_Decomposing_Task MediaMRetr;
+    MediaMetadataRetriever_Decomposing_Task MediaMRetrTask;
+    JavaCVDecomposing_Task JavaCVTask;
     SharedPreferences prefs;
 
     //Стандартная инициализация активити
@@ -81,9 +80,9 @@ public class MainActivity extends AppCompatActivity {
         RadioButton mRadButFROMopencv = (RadioButton) findViewById(R.id.radButLiveCamera);
         Button buttonStart = (Button) findViewById(R.id.butStart);
 
-        if (MediaMRetr != null) {
-            if (MediaMRetr.getStatus().toString() == "RUNNING") {
-                MediaMRetr.cancel(false);
+        if (MediaMRetrTask != null) {
+            if (MediaMRetrTask.getStatus().toString() == "RUNNING") {
+                MediaMRetrTask.cancel(false);
                 buttonStart.setText("СТАРТ");
 
             }
@@ -157,10 +156,11 @@ public class MainActivity extends AppCompatActivity {
         double frameRate = grabber.getFrameRate();
 
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
-            javaCV_decomposing(videopath);
+            JavaCVTask = new JavaCVDecomposing_Task(durationMs, frameRate);
+            JavaCVTask.execute(videopath);
         } else {
-            MediaMRetr = new MediaMetadataRetriever_Decomposing_Task(durationMs, frameRate);
-            MediaMRetr.execute(videopath);
+            MediaMRetrTask = new MediaMetadataRetriever_Decomposing_Task(durationMs, frameRate);
+            MediaMRetrTask.execute(videopath);
         }
 
     }
@@ -206,15 +206,113 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    protected class JavaCVDecomposing_Task extends AsyncTask<String, Integer, Void> {
+        //получаем доступ к элементам интерфейса
+        ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarProgress);
+        TextView textviewCountSeconds = (TextView) findViewById(R.id.tvSecOfVideoProcessed);
+        TextView textViewCountLightnings = (TextView) findViewById(R.id.tvCountLightnings);
+        Button buttonStart = (Button) findViewById(R.id.butStart);
+
+        private int frameRate;
+        private int durationMs; //длительность видео
+
+        int counterFrames = 0;        //счетчик кадров
+        int counterSeconds = 0;       //счетчик обработанных секунд
+        int counterLightnings = 0;     //счетчик молний
+
+        //переопределяем конструктор Task для получения дополнительных параметров
+        public JavaCVDecomposing_Task(int duration, double frameRateTemp) {
+            super();
+            durationMs = duration;        //продолжительность видео в миллисекундах
+            frameRate = (int) frameRateTemp;  //FPS видео
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            horizontalprogress.setMax(durationMs / frameRate);
+            horizontalprogress.setProgress(0);
+
+            buttonStart.setText("СТОП");
+            Toast.makeText(getApplicationContext(), "Обработка видео запущена", Toast.LENGTH_LONG).show();
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            super.onProgressUpdate(progress);
+            horizontalprogress.setProgress(progress[0]);
+            textviewCountSeconds.setText(String.valueOf(progress[1]));
+            textViewCountLightnings.setText(String.valueOf(progress[2]));
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+            Bitmap bitmapVideoFrame;
+            Frame videoframe = null;
+            int currentFrame = 0;
+            String videofileName = getFileName(params[0]);
+            OpenCVHandler openCVHandler = new OpenCVHandler();
+
+            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(params[0]);
+            AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
+
+            try {
+                grabber.start();
+            } catch (FrameGrabber.Exception e) {
+                e.printStackTrace();
+            }
+
+            while (true) {
+                long startTime = System.currentTimeMillis();    //засекаем время получения кадра
+
+                try {
+                    videoframe = grabber.grab();
+                } catch (FrameGrabber.Exception e) {
+                    e.printStackTrace();
+                }
+
+                Log.d(TAG, "Кадр видео: " + currentFrame);
+                if (counterFrames == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
+                    counterFrames = 0;
+                    counterSeconds++;
+                    Log.d(TAG, "Секунда видео: " + counterSeconds);
+                }
+
+
+                bitmapVideoFrame = converterToBitmap.convert(videoframe);
+                long endTime = System.currentTimeMillis();
+                Log.d(TAG, "Время выдергивания из видоса OPENCV: " + ((endTime - startTime) / 1000f));
+                currentFrame++;
+                publishProgress(currentFrame, counterSeconds, counterLightnings);
+                if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName)) {
+                    counterLightnings++;
+                }
+                ;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            buttonStart.setText("СТАРТ");
+            Toast.makeText(getApplicationContext(), "Обработка видео окончена", Toast.LENGTH_LONG).show();
+        }
+
+    }
 
     protected class MediaMetadataRetriever_Decomposing_Task extends AsyncTask<String, Integer, Void> {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarProgress);
         TextView textviewCountSeconds = (TextView) findViewById(R.id.tvSecOfVideoProcessed);
         TextView textViewCountLightnings = (TextView) findViewById(R.id.tvCountLightnings);
         Button buttonStart = (Button) findViewById(R.id.butStart);
+
         private int durationMs; //длительность видео
         private int frameRate;
-        private int frameStep;
+        private int frameStep;//специальная переменная для работы getFrameAtTime
+
+        int counterFrames = 0;        //счетчик кадров
+        int counterSeconds = 0;       //счетчик обработанных секунд
+        int counterLightnings = 0;     //счетчик молний
 
         //переопределяем конструктор класса для возможности передавать левые аргументы
         public MediaMetadataRetriever_Decomposing_Task(int duration, double frameRateTemp) {
@@ -251,10 +349,6 @@ public class MainActivity extends AppCompatActivity {
 
             MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
             OpenCVHandler openCVHandler = new OpenCVHandler();
-
-            int counterFrames = 0;        //счетчик кадров
-            int counterSeconds = 0;       //счетчик обработанных секунд
-            int counterLightnings = 0;     //счетчик молний
 
             String videofileName = getFileName(params[0]);
             Bitmap frame;
