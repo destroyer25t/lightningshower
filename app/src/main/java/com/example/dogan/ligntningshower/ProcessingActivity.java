@@ -18,6 +18,7 @@ import org.bytedeco.javacv.AndroidFrameConverter;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber;
+import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -88,6 +89,7 @@ public class ProcessingActivity extends AppCompatActivity {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
         TextView textviewCountSeconds = (TextView) findViewById(R.id.textViewCountSeconds);
         TextView textViewCountLightnings = (TextView) findViewById(R.id.textViewFoundedLightnings);
+        TextView textViewCountFrames = (TextView) findViewById(R.id.textViewCountFrames);
         Button buttonStop = (Button) findViewById(R.id.buttonStop);
 
         private int frameRate;
@@ -118,7 +120,8 @@ public class ProcessingActivity extends AppCompatActivity {
             super.onProgressUpdate(progress);
             horizontalprogress.setProgress(progress[0]);
             textviewCountSeconds.setText("Секунд видео обработано:" + String.valueOf(progress[1]));
-            textViewCountLightnings.setText("Кадров с молниями:" + String.valueOf(progress[2]));
+            textViewCountLightnings.setText("Молний обнаружено:" + String.valueOf(progress[2]));
+            textViewCountFrames.setText("Кадров обработано:" + String.valueOf(progress[0]));
         }
 
         @Override
@@ -180,6 +183,7 @@ public class ProcessingActivity extends AppCompatActivity {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
         TextView textviewCountSeconds = (TextView) findViewById(R.id.textViewCountSeconds);
         TextView textViewCountLightnings = (TextView) findViewById(R.id.textViewFoundedLightnings);
+        TextView textViewCountFrames = (TextView) findViewById(R.id.textViewCountFrames);
 
         private int durationMs; //длительность видео
         private int frameRate;
@@ -213,6 +217,7 @@ public class ProcessingActivity extends AppCompatActivity {
             horizontalprogress.setProgress(progress[0] / frameStep);
             textviewCountSeconds.setText("Секунд видео обработано:" + String.valueOf(progress[1]));
             textViewCountLightnings.setText("Кадров с молниями найдено:" + String.valueOf(progress[2]));
+            textViewCountFrames.setText("Кадров обработано:" + String.valueOf(progress[0]));
         }
 
 
