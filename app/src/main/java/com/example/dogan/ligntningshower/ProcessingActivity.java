@@ -1,3 +1,5 @@
+//TODO:JavaCV пашет прекрасно, но AsyncTask блокируются где то через 20 секунд обработки
+
 package com.example.dogan.ligntningshower;
 
 import android.content.SharedPreferences;
@@ -9,7 +11,9 @@ import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,6 +35,7 @@ public class ProcessingActivity extends AppCompatActivity {
     MediaMetadataRetriever_Decomposing_Task MediaMRetrTask;
     JavaCVDecomposing_Task JavaCVTask;
 
+    int typeOfTask;
     Uri imageUri;
     String videopath;
     SharedPreferences prefs;
@@ -84,16 +89,20 @@ public class ProcessingActivity extends AppCompatActivity {
 
     }
 
+
     protected class JavaCVDecomposing_Task extends AsyncTask<String, Integer, Void> {
         //получаем доступ к элементам интерфейса
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
         TextView textviewCountSeconds = (TextView) findViewById(R.id.textViewCountSeconds);
         TextView textViewCountLightnings = (TextView) findViewById(R.id.textViewFoundedLightnings);
         TextView textViewCountFrames = (TextView) findViewById(R.id.textViewCountFrames);
+        ImageView imageView = (ImageView) findViewById(R.id.imageViewCurrentFrame);
         Button buttonStop = (Button) findViewById(R.id.buttonStop);
 
         private int frameRate;
         private int durationMs; //длительность видео
+        private int durationS;
+        private int frames;
 
         int counterFrames = 0;        //счетчик кадров
         int counterSeconds = 0;       //счетчик обработанных секунд
@@ -102,13 +111,16 @@ public class ProcessingActivity extends AppCompatActivity {
         //переопределяем конструктор Task для получения дополнительных параметров
         public JavaCVDecomposing_Task(int duration, double frameRateTemp) {
             super();
-            durationMs = duration;        //продолжительность видео в миллисекундах
             frameRate = (int) frameRateTemp;  //FPS видео
+            durationMs = duration;        //продолжительность видео в миллисекундах
+            durationS = durationMs / 1000;
+            frames = frameRate * durationS;
         }
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            typeOfTask = 0;
             horizontalprogress.setMax(durationMs / frameRate);
             horizontalprogress.setProgress(0);
 
@@ -119,9 +131,9 @@ public class ProcessingActivity extends AppCompatActivity {
         protected void onProgressUpdate(Integer... progress) {
             super.onProgressUpdate(progress);
             horizontalprogress.setProgress(progress[0]);
-            textviewCountSeconds.setText("Секунд видео обработано:" + String.valueOf(progress[1]));
+            textviewCountSeconds.setText("Секунд видео обработано:" + String.valueOf(progress[1]) + " из " + String.valueOf(durationS));
             textViewCountLightnings.setText("Молний обнаружено:" + String.valueOf(progress[2]));
-            textViewCountFrames.setText("Кадров обработано:" + String.valueOf(progress[0]));
+            textViewCountFrames.setText("Кадров обработано:" + String.valueOf(progress[0]) + " из " + String.valueOf(frames));
         }
 
         @Override
@@ -142,15 +154,19 @@ public class ProcessingActivity extends AppCompatActivity {
             }
 
             while (true) {
+                if (isCancelled()) return null;
                 long startTime = System.currentTimeMillis();    //засекаем время получения кадра
 
                 try {
                     videoframe = grabber.grab();
+                    currentFrame = grabber.getFrameNumber();
                 } catch (FrameGrabber.Exception e) {
                     e.printStackTrace();
                 }
 
+
                 Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
+                counterFrames++;
                 if (counterFrames == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
                     counterFrames = 0;
                     counterSeconds++;
@@ -159,9 +175,15 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
                 bitmapVideoFrame = converterToBitmap.convert(videoframe);
+                final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        imageView.setImageBitmap(finalBitmapVideoFrame);
+
+                    }
+                });
                 long endTime = System.currentTimeMillis();
                 Log.d("Lightning Shower Debug:", "Время выдергивания из видоса OPENCV: " + ((endTime - startTime) / 1000f));
-                currentFrame++;
                 publishProgress(currentFrame, counterSeconds, counterLightnings);
                 if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName)) {
                     counterLightnings++;
@@ -184,6 +206,7 @@ public class ProcessingActivity extends AppCompatActivity {
         TextView textviewCountSeconds = (TextView) findViewById(R.id.textViewCountSeconds);
         TextView textViewCountLightnings = (TextView) findViewById(R.id.textViewFoundedLightnings);
         TextView textViewCountFrames = (TextView) findViewById(R.id.textViewCountFrames);
+        ImageView imageView = (ImageView) findViewById(R.id.imageViewCurrentFrame);
 
         private int durationMs; //длительность видео
         private int frameRate;
@@ -204,6 +227,7 @@ public class ProcessingActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            typeOfTask = 1;
             horizontalprogress.setMax(durationMs / frameRate);
             horizontalprogress.setProgress(0);
 
@@ -236,6 +260,7 @@ public class ProcessingActivity extends AppCompatActivity {
             int durationS = durationMs / 1000;    //секундах
 
             for (int currentFrame = frameStep; currentFrame < durationMs * 1000; currentFrame += frameStep) {
+                if (isCancelled()) return null;
                 counterFrames++;
                 Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame / frameStep);
                 if (counterFrames == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
@@ -247,6 +272,14 @@ public class ProcessingActivity extends AppCompatActivity {
                 long startTime = System.currentTimeMillis();    //засекаем время получения кадра
                 frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
                 long endTime = System.currentTimeMillis();
+
+                final Bitmap finalBitmapVideoFrame = frame;
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        imageView.setImageBitmap(finalBitmapVideoFrame);
+
+                    }
+                });
                 Log.d("Lightning Shower Debug:", "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
                 if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName)) {
                     counterLightnings++;
@@ -266,5 +299,13 @@ public class ProcessingActivity extends AppCompatActivity {
 
     }
 
+    //Обработчики кнопок
+    public void onClickStopButton(View view) {
+        if (typeOfTask == 0) {
+            JavaCVTask.cancel(true);
+        } else {
+            MediaMRetrTask.cancel(true);
+        }
+    }
 
 }
