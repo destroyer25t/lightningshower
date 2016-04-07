@@ -1,44 +1,20 @@
 package com.example.dogan.ligntningshower;
 
-import android.content.ContentUris;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.media.MediaExtractor;
-import android.media.MediaFormat;
-import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.preference.PreferenceManager;
-import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.RadioButton;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import org.bytedeco.javacv.AndroidFrameConverter;
-import org.bytedeco.javacv.FFmpegFrameGrabber;
-import org.bytedeco.javacv.Frame;
-import org.bytedeco.javacv.FrameGrabber;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Objects;
-
-import static com.example.dogan.ligntningshower.SupportFunctions.*;
+import static com.example.dogan.ligntningshower.SupportFunctions.deleteVideoAfterProcessing;
 
 
 public class MainActivity extends AppCompatActivity {

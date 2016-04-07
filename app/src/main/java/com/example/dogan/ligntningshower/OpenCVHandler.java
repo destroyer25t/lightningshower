@@ -19,10 +19,7 @@ import static org.bytedeco.javacpp.opencv_imgproc.*;
  * commit before transfering to AsyncTask
  */
 public class OpenCVHandler {
-    public IplImage Igray = null, Iat = null, Icolor = null;
-    public IplImage initImage = null;
-    private int MINAREA = 65000;    //регулируя это задаем величину минимальной площадь контура, после которого он начинает считаться молнией
-    private int DOFFSET = 195;    //для демонстрации значение порога задано сразу
+
 
 
     private boolean findCountoursDetection(double areaImage, IplImage Iat) {
@@ -44,7 +41,7 @@ public class OpenCVHandler {
                 double compact = area / (perim * perim);    //какая то придуманная формула для расчета компактности
                 if (compact < 0.01 && area > areaImage) { //area>15
                     rect = cvBoundingRect(seq0, 0);
-                    if ((rect.height() * 3 > Igray.height()) || (rect.height() > rect.width() * 3))
+                    if ((rect.height() * 3 > Iat.height()) || (rect.height() > rect.width() * 3))
                         return true;
                 }
             }
@@ -55,8 +52,13 @@ public class OpenCVHandler {
         return false;
     }
 
-    boolean preparingBeforeFindContours(Bitmap image, int numberOfFrame, String fileOfName) {
+    public boolean preparingBeforeFindContours(Bitmap image, int numberOfFrame, String fileOfName) {
+        IplImage Igray = null, Iat = null, Icolor = null;
+        int MINAREA = 65000;    //регулируя это задаем величину минимальной площадь контура, после которого он начинает считаться молнией
+        int DOFFSET = 195;    //для демонстрации значение порога задано сразу
+
         if (image == null) {
+            Log.d("Lightning Shower Debug:", "image был равен null");
             return false;
         }
 
@@ -75,8 +77,14 @@ public class OpenCVHandler {
         //контуры
         if (findCountoursDetection(areaImage, Iat)) {
             saveBitmapToPhone(image, fileOfName, numberOfFrame);
+            Igray.deallocate();
+            Iat.deallocate();
+            Icolor.deallocate();
             return true;
         } else {
+            Igray.deallocate();
+            Iat.deallocate();
+            Icolor.deallocate();
             return false;
         }
     }
