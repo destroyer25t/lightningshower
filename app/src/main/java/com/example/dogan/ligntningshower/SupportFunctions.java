@@ -159,6 +159,7 @@ public class SupportFunctions {
     }
 
     /**
+     * Оставляет только имя файла с расширением
      * @param fullpath Полный путь к файлу
      * @return имя файла с расширением
      */
@@ -169,6 +170,7 @@ public class SupportFunctions {
     }
 
     /**
+     * Функция удаляющая видео переданному ей в аргументе
      * @param context  контекст
      * @param imageUri Uri к файлу
      * @return удаляет файл

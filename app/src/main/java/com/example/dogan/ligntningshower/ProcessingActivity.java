@@ -37,16 +37,17 @@ public class ProcessingActivity extends AppCompatActivity {
     MediaMetadataRetriever_Decomposing_Task MediaMRetrTask;
     JavaCVDecomposing_Task JavaCVTask;
 
-    int typeOfTask;
-    Uri imageUri;
-    String videopath;
-    SharedPreferences prefs;
+    int typeOfTask;     //переменная в которой хранится выбор типа обработки
+    Uri imageUri;       //путь URI до видео
+    String videopath;   //путь до видео
+    SharedPreferences prefs;    //настройки приложения
 
-    //счетчики кадров-секунд для runnable версии
+    //счетчики кадров-секунд-молний для runnable версии
     private volatile int framesCounterThrVer = 0;
     private volatile int secondsCounterThrVer = 0;
     private volatile int lightningsCounterThrVer = 0;
 
+    //все необходимые для работы свойства видео
     private double frameRateDouble;
     private int frameRate;
     private int durationMs; //длительность видео
@@ -72,6 +73,13 @@ public class ProcessingActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Функция руководящая процессом обработки видео переданного в активити.
+     * Инициализирует все свойства видео
+     * В зависимости от выбранного способа обработки запускает соответствующие потоки/задания
+     *
+     * @param videopath путь к видео
+     */
     public void Decomposing(String videopath) throws IOException {
 
         String typeOfDecomposing = prefs.getString("pref_decompose_mode", "OPENCVdecomposing");
@@ -97,7 +105,7 @@ public class ProcessingActivity extends AppCompatActivity {
         frames = grabber.getLengthInFrames();
 
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
-            videoProcessingControl();
+            videoProcessingControl(6);  //запуск в 4 потока
             // JavaCVTask = new JavaCVDecomposing_Task();
             //JavaCVTask.execute(videopath);
         } else {
@@ -107,7 +115,10 @@ public class ProcessingActivity extends AppCompatActivity {
 
     }
 
-
+    /**
+     * AsyncTask класс, реализующий обработку видео с помощью FFMPeg grabber-а
+     * Не рекомендуется использовать поскольку андроид гасит выполнение цикла в doInBackground
+     */
     protected class JavaCVDecomposing_Task extends AsyncTask<String, Integer, Void> {
         //получаем доступ к элементам интерфейса
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
@@ -204,6 +215,12 @@ public class ProcessingActivity extends AppCompatActivity {
 
     }
 
+    /**
+     *
+     * AsyncTask класс, реализующий обработку видео с помощью гугловского MediaMetadataRetriever
+     * Не рекомендуется использовать поскольку андроид гасит выполнение цикла в doInBackground
+     *
+     */
     protected class MediaMetadataRetriever_Decomposing_Task extends AsyncTask<String, Integer, Void> {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
         TextView textviewCountSeconds = (TextView) findViewById(R.id.textViewCountSeconds);
@@ -293,22 +310,48 @@ public class ProcessingActivity extends AppCompatActivity {
 
     }
 
-    protected void videoProcessingControl() {
+    /**
+     *
+     * Функция управляющая параллельными потоками. Создает
+     @param numberOfThreads потоков и запускает в них JavaCVDecomposing_Thread функцию
+     *
+     */
+    protected void videoProcessingControl(int numberOfThreads) {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
-        horizontalprogress.setMax(frames);
-        int quarter = frames / 4;
-        int rest = frames % 4;
-        Thread JavaCVThread1 = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath));
-        Thread JavaCVThread2 = new Thread(new JavaCVDecomposing_Thread(quarter + 1, quarter * 2, videopath));
-        Thread JavaCVThread3 = new Thread(new JavaCVDecomposing_Thread(quarter * 2 + 1, quarter * 3, videopath));
-        Thread JavaCVThread4 = new Thread(new JavaCVDecomposing_Thread(quarter * 3 + 1, quarter * 4 + rest, videopath));
-        JavaCVThread1.start();
-        JavaCVThread2.start();
-        JavaCVThread3.start();
-        JavaCVThread4.start();
+        horizontalprogress.setMax(frames);  //задаем длину прогресс-бара в количество кадров
+
+        int quarter = frames / numberOfThreads;     //делим количество кадров на количество потоков
+        int rest = frames % numberOfThreads;        //получаем остаток в случае если количество кадров не кратно количесву потоков
+        Thread threads[];                           //объявляем массив потоков
+        threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ
+
+        Thread firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
+        //задаем потоки между первым и последним
+        if (numberOfThreads > 2) {
+            for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
+                threads[i - 1] = new Thread(new JavaCVDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
+            }
+        }
+        //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
+        Thread lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+
+
+        //запускаем потоки
+        firstThread.start();
+        if (numberOfThreads > 2) {
+            for (int i = 1; i < numberOfThreads - 1; i++) {
+                threads[i - 1].start();
+            }
+        }
+        lastThread.start();
+
     }
 
-
+    /**
+     * Функция позволяющая обновлять элементы интерфейса. Также в нее передается Bitmap
+     @param img для обновления ImageView - эскиз текущего кадра
+     *
+     */
     public void refreshUIFunction(final Bitmap img) {
         runOnUiThread(new Runnable() {
             @Override
@@ -330,6 +373,14 @@ public class ProcessingActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * Класс-поток, реализует обработку кадров переданных в конструктор с помощью FFmpeg
+     *
+     startFrame - номер кадра с которого начинается обработка
+     endFrame - номер кадра на котором закончится обработка (включительно)
+     videopath - путь к видео, позже уберу
+     *
+     */
     protected class JavaCVDecomposing_Thread implements Runnable {
         private int startFrame;
         private int endFrame;
