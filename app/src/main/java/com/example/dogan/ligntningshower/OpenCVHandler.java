@@ -57,10 +57,6 @@ public class OpenCVHandler {
         int MINAREA = 65000;    //регулируя это задаем величину минимальной площадь контура, после которого он начинает считаться молнией
         int DOFFSET = 195;    //для демонстрации значение порога задано сразу
 
-        if (image == null) {
-            Log.d("Lightning Shower Debug:", "image был равен null");
-            return false;
-        }
 
         Igray = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 1);
         Icolor = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 4);

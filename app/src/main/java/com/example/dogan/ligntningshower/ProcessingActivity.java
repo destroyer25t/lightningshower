@@ -213,10 +213,8 @@ public class ProcessingActivity extends AppCompatActivity {
     }
 
     /**
-     *
      * AsyncTask класс, реализующий обработку видео с помощью гугловского MediaMetadataRetriever
      * Не рекомендуется использовать поскольку андроид гасит выполнение цикла в doInBackground
-     *
      */
     protected class MediaMetadataRetriever_Decomposing_Task extends AsyncTask<String, Integer, Void> {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
@@ -308,10 +306,9 @@ public class ProcessingActivity extends AppCompatActivity {
     }
 
     /**
-     *
      * Функция управляющая параллельными потоками. Создает
-     @param numberOfThreads потоков и запускает в них JavaCVDecomposing_Thread функцию
      *
+     * @param numberOfThreads потоков и запускает в них JavaCVDecomposing_Thread функцию
      */
     protected void videoProcessingControl(int numberOfThreads) {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
@@ -346,8 +343,8 @@ public class ProcessingActivity extends AppCompatActivity {
 
     /**
      * Функция позволяющая обновлять элементы интерфейса. Также в нее передается Bitmap
-     @param img для обновления ImageView - эскиз текущего кадра
      *
+     * @param img для обновления ImageView - эскиз текущего кадра
      */
     public void refreshUIFunction(final Bitmap img) {
         runOnUiThread(new Runnable() {
@@ -372,11 +369,10 @@ public class ProcessingActivity extends AppCompatActivity {
 
     /**
      * Класс-поток, реализует обработку кадров переданных в конструктор с помощью FFmpeg
-     *
-     startFrame - номер кадра с которого начинается обработка
-     endFrame - номер кадра на котором закончится обработка (включительно)
-     videopath - путь к видео, позже уберу
-     *
+     * <p/>
+     * startFrame - номер кадра с которого начинается обработка
+     * endFrame - номер кадра на котором закончится обработка (включительно)
+     * videopath - путь к видео, позже уберу
      */
     protected class JavaCVDecomposing_Thread implements Runnable {
         private int startFrame;
@@ -413,16 +409,25 @@ public class ProcessingActivity extends AppCompatActivity {
                 } catch (FrameGrabber.Exception e) {
                     e.printStackTrace();
                 }
-                currentFrame = grabber.getFrameNumber();
-                framesCounterThrVer++;
-                bitmapVideoFrame = converterToBitmap.convert(videoframe);
-                final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
 
-                if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName)) {
-                    lightningsCounterThrVer++;
+                currentFrame = grabber.getFrameNumber();
+                bitmapVideoFrame = converterToBitmap.convert(videoframe);
+
+                if (bitmapVideoFrame != null) {
+                    final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
+                    if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName)) {
+                        lightningsCounterThrVer++;
+                    }
+                    refreshUIFunction(finalBitmapVideoFrame);
+                    Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
+                } else {
+                    Log.d("Lightning Shower Debug:", "image был равен null");
+                    try {
+                        grabber.setFrameNumber(currentFrame++);
+                    } catch (FrameGrabber.Exception e) {
+                        e.printStackTrace();
+                    }
                 }
-                refreshUIFunction(finalBitmapVideoFrame);
-                Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
             } while (currentFrame <= endFrame);
         }
 
