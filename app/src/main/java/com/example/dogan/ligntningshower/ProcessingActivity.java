@@ -434,6 +434,72 @@ public class ProcessingActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * Класс-поток, реализует обработку кадров переданных в конструктор с помощью Google API
+     * MediaMetadataRetriever
+     * <p/>
+     * startFrame - номер кадра с которого начинается обработка
+     * endFrame - номер кадра на котором закончится обработка (включительно)
+     * videopath - путь к видео, позже уберу
+     */
+    protected class MediaMetadataRetrDecomposing_Thread implements Runnable {
+        private int startFrame;
+        private int endFrame;
+        private String videopath;
+        private int frameStep;//специальная переменная для работы getFrameAtTime
+        private int currentFrame = 0; //номер текущего кадра который обрабатывается
+
+
+        MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
+        OpenCVHandler openCVHandler = new OpenCVHandler();
+
+        String videofileName;
+        Bitmap frame;
+
+        public MediaMetadataRetrDecomposing_Thread(int startFrame, int endFrame, String videopath) {
+            //устанавливаем источник для mediadata
+            mediaMetadata.setDataSource(videopath);
+            frameStep = (int) (1000000 / frameRateDouble); //1000000/FPS - через каждые frameStep микросекунд следует брать новый кадр
+
+            this.startFrame = frameStep * startFrame;
+            this.endFrame = frameStep * endFrame;
+            this.videopath = videopath;
+            this.videofileName = getFileName(videopath);
+
+
+        }
+
+        public void run() {
+
+            int counterFrames = 0;
+            for (currentFrame = startFrame; currentFrame < endFrame; currentFrame += frameStep) {
+
+                counterFrames++;
+                Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame / frameStep);
+                if (counterFrames == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
+                    counterFrames = 0;
+                    secondsCounterThrVer++;
+                    Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
+                }
+
+                long startTime = System.currentTimeMillis();    //засекаем время получения кадра
+                frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
+                long endTime = System.currentTimeMillis();
+
+                final Bitmap finalBitmapVideoFrame = frame;
+
+                Log.d("Lightning Shower Debug:", "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
+                if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName)) {
+                    lightningsCounterThrVer++;
+                }
+                refreshUIFunction(finalBitmapVideoFrame);
+                framesCounterThrVer++;
+            }
+
+        }
+
+    }
+
     //Обработчики кнопок
     public void onClickStopButton(View view) {
         if (typeOfTask == 0) {
