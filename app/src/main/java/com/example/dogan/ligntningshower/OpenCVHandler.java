@@ -1,7 +1,9 @@
 package com.example.dogan.ligntningshower;
 
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.io.File;
@@ -20,41 +22,53 @@ import static org.bytedeco.javacpp.opencv_imgproc.*;
  */
 public class OpenCVHandler {
 
-
-
-    private boolean findCountoursDetection(double areaImage, IplImage Iat) {
+    private boolean findCountoursDetection(double scaleCoeff, IplImage Iat, float precision) {
         CvMemStorage storage = cvCreateMemStorage(0);
         CvSeq contours = new CvSeq();
-        CvRect rect = null;
+        CvBox2D box;
         //находим контуры
         //long startTime = System.currentTimeMillis();    //засекаем время получения кадро
         int contoursCont = cvFindContours(Iat, storage, contours, sizeof(CvContour.class), CV_RETR_LIST, CV_LINK_RUNS, cvPoint(0, 0));
         //long endTime = System.currentTimeMillis();
         //Log.d("TRULALA", "Время работы cvFindContours: " + ((endTime - startTime) / 1000f));
-        // Log.d("TRULALA", Integer.toString(contoursCont));
+
         int counter = 0;
-        //startTime = System.currentTimeMillis();
+
         if (contoursCont >= 0) {
             for (CvSeq seq0 = contours; seq0 != null; seq0 = seq0.h_next()) {
+                box = cvMinAreaRect2(seq0, storage);
                 double area = Math.abs(cvContourArea(seq0));    //площадь контура
                 double perim = cvContourPerimeter(seq0);    //периметр контура
                 double compact = area / (perim * perim);    //какая то придуманная формула для расчета компактности
-                if (compact < 0.01 && area > areaImage) { //area>15
-                    rect = cvBoundingRect(seq0, 0);
-                    if ((rect.height() * 3 > Iat.height()) || (rect.height() > rect.width() * 3))
+                float proportion;
+                if (box.size().width() > box.size().height()) {
+                    proportion = box.size().height() / (float) box.size().width();
+                } else {
+                    proportion = box.size().width() / (float) box.size().height();
+                }
+
+                if (compact < 0.01 && area > scaleCoeff * 9) { //area>15
+                    if (proportion <= precision) {
+                        box.deallocate();
+                        storage.deallocate();
+                        contours.deallocate();
                         return true;
+                    }
+
                 }
             }
 
-        }//Log.d("TRULALA", "Молния найдена");
-        //endTime = System.currentTimeMillis();
-        //Log.d("TRULALA", "Время работы цикла: " + ((endTime - startTime) / 1000f));
+        }
+        storage.deallocate();
+        contours.deallocate();
         return false;
     }
 
-    public boolean preparingBeforeFindContours(Bitmap image, int numberOfFrame, String fileOfName) {
+    public boolean preparingBeforeFindContours(Bitmap image, int numberOfFrame, String fileOfName, float precision) {
+        if (image == null) {
+            return false;
+        }
         IplImage Igray = null, Iat = null, Icolor = null;
-        int MINAREA = 65000;    //регулируя это задаем величину минимальной площадь контура, после которого он начинает считаться молнией
         int DOFFSET = 195;    //для демонстрации значение порога задано сразу
 
 
@@ -62,7 +76,7 @@ public class OpenCVHandler {
         Icolor = IplImage.create(image.getWidth(), image.getHeight(), IPL_DEPTH_8U, 4);
         image.copyPixelsToBuffer(Icolor.getByteBuffer());
         cvCvtColor(Icolor, Igray, CV_RGB2GRAY);
-        double areaImage = (Igray.height() * Igray.width()) / MINAREA;
+        double scaleCoeff = Igray.height() / 20;
 
         double offset = DOFFSET;
 
@@ -71,7 +85,7 @@ public class OpenCVHandler {
         cvThreshold(Igray, Iat, offset, 255, CV_THRESH_BINARY);
 
         //контуры
-        if (findCountoursDetection(areaImage, Iat)) {
+        if (findCountoursDetection(scaleCoeff, Iat, precision)) {
             saveBitmapToPhone(image, fileOfName, numberOfFrame);
             Igray.deallocate();
             Iat.deallocate();
@@ -105,7 +119,6 @@ public class OpenCVHandler {
                 e.printStackTrace();
             }
         }
-
 
         image.compress(Bitmap.CompressFormat.JPEG, 50, fOut);
         try {
