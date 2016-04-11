@@ -2,6 +2,9 @@
 
 package com.example.dogan.ligntningshower;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
@@ -28,6 +31,7 @@ import java.util.Objects;
 
 import static com.example.dogan.ligntningshower.SupportFunctions.getFileName;
 import static com.example.dogan.ligntningshower.SupportFunctions.getPath;
+import static org.bytedeco.javacv.Parallel.getNumCores;
 
 public class ProcessingActivity extends AppCompatActivity {
 
@@ -38,6 +42,7 @@ public class ProcessingActivity extends AppCompatActivity {
     Uri imageUri;       //путь URI до видео
     String videopath;   //путь до видео
     SharedPreferences prefs;    //настройки приложения
+    float precision;
 
     //счетчики кадров-секунд-молний для runnable версии
     private volatile int framesCounterThrVer = 0;
@@ -62,6 +67,8 @@ public class ProcessingActivity extends AppCompatActivity {
         imageUri = Uri.parse(tempUri);  //преобразуем полученный строкой Uri обратно в Uri
         videopath = getPath(this, imageUri);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String tempPrecision = prefs.getString("thresholdOfRecongintion", "0.86");
+        precision = Float.parseFloat(tempPrecision);
 
         try {
             Decomposing(videopath);
@@ -101,15 +108,19 @@ public class ProcessingActivity extends AppCompatActivity {
         durationS = durationMs / 1000;
         frames = grabber.getLengthInFrames();
 
+        int numOfCores = getNumCores(); //получаем количество ядер
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
-            videoProcessingControl(6);  //запуск в 4 потока
+            typeOfTask = 0;
+            videoProcessingControl(numOfCores);  //запуск в 4 потока
             // JavaCVTask = new JavaCVDecomposing_Task();
             //JavaCVTask.execute(videopath);
         } else {
-            MediaMRetrTask = new MediaMetadataRetriever_Decomposing_Task();
-            MediaMRetrTask.execute(videopath);
+            typeOfTask = 1;
+            videoProcessingControl(numOfCores);
+            //MediaMRetrTask = new MediaMetadataRetriever_Decomposing_Task();
+            //MediaMRetrTask.execute(videopath);
         }
-
+        //TODO запилить уведомление для шторки
     }
 
     /**
@@ -131,7 +142,6 @@ public class ProcessingActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            typeOfTask = 0;
             horizontalprogress.setMax(durationMs / frameRate);
             horizontalprogress.setProgress(0);
 
@@ -196,7 +206,7 @@ public class ProcessingActivity extends AppCompatActivity {
                 long endTime = System.currentTimeMillis();
                 Log.d("Lightning Shower Debug:", "Время выдергивания из видоса OPENCV: " + ((endTime - startTime) / 1000f));
                 publishProgress(currentFrame, counterSeconds, counterLightnings);
-                if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName)) {
+                if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName, precision)) {
                     counterLightnings++;
                 }
 
@@ -234,7 +244,6 @@ public class ProcessingActivity extends AppCompatActivity {
             super.onPreExecute();
             frameStep = (int) (1000000 / frameRateDouble); //1000000/FPS - через каждые frameStep микросекунд следует брать новый кадр
 
-            typeOfTask = 1;
             horizontalprogress.setMax(durationMs / frameRate);
             horizontalprogress.setProgress(0);
 
@@ -287,7 +296,7 @@ public class ProcessingActivity extends AppCompatActivity {
                     }
                 });
                 Log.d("Lightning Shower Debug:", "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
-                if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName)) {
+                if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName, precision)) {
                     counterLightnings++;
                 }
                 publishProgress(currentFrame, counterSeconds, counterLightnings);
@@ -319,25 +328,49 @@ public class ProcessingActivity extends AppCompatActivity {
         Thread threads[];                           //объявляем массив потоков
         threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ
 
-        Thread firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
-        //задаем потоки между первым и последним
-        if (numberOfThreads > 2) {
-            for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
-                threads[i - 1] = new Thread(new JavaCVDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
+        //в зависимости от выбранного типа обработки typeOfTask...
+        if (typeOfTask == 0) {
+            Thread firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
+            //задаем потоки между первым и последним
+            if (numberOfThreads > 2) {
+                for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
+                    threads[i - 1] = new Thread(new JavaCVDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
+                }
             }
-        }
-        //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
-        Thread lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+            //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
+            Thread lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
 
 
-        //запускаем потоки
-        firstThread.start();
-        if (numberOfThreads > 2) {
-            for (int i = 1; i < numberOfThreads - 1; i++) {
-                threads[i - 1].start();
+            //запускаем потоки
+            firstThread.start();
+            if (numberOfThreads > 2) {
+                for (int i = 1; i < numberOfThreads - 1; i++) {
+                    threads[i - 1].start();
+                }
             }
+            lastThread.start();
+        } else {
+            Thread firstThread = new Thread(new MediaMetadataRetrDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
+            //задаем потоки между первым и последним
+            if (numberOfThreads > 2) {
+                for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
+                    threads[i - 1] = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
+                }
+            }
+            //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
+            Thread lastThread = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+
+
+            //запускаем потоки
+            firstThread.start();
+            if (numberOfThreads > 2) {
+                for (int i = 1; i < numberOfThreads - 1; i++) {
+                    threads[i - 1].start();
+                }
+            }
+            lastThread.start();
         }
-        lastThread.start();
+
 
     }
 
@@ -392,6 +425,8 @@ public class ProcessingActivity extends AppCompatActivity {
             String videofileName = getFileName(videopath);
             OpenCVHandler openCVHandler = new OpenCVHandler();
 
+            int counterFrames = 0;   //счетчик кадров для секунд
+
             FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videopath);
             AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
 
@@ -411,23 +446,26 @@ public class ProcessingActivity extends AppCompatActivity {
                 }
 
                 currentFrame = grabber.getFrameNumber();
-                bitmapVideoFrame = converterToBitmap.convert(videoframe);
-
-                if (bitmapVideoFrame != null) {
-                    final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
-                    if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName)) {
-                        lightningsCounterThrVer++;
-                    }
-                    refreshUIFunction(finalBitmapVideoFrame);
-                    Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
-                } else {
-                    Log.d("Lightning Shower Debug:", "image был равен null");
-                    try {
-                        grabber.setFrameNumber(currentFrame++);
-                    } catch (FrameGrabber.Exception e) {
-                        e.printStackTrace();
-                    }
+                counterFrames++;
+                Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
+                if (counterFrames == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
+                    counterFrames = 0;
+                    secondsCounterThrVer++;
+                    Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
                 }
+                bitmapVideoFrame = converterToBitmap.convert(videoframe);
+                framesCounterThrVer++;
+
+
+                final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
+                if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName, precision)) {
+                    lightningsCounterThrVer++;
+                }
+                refreshUIFunction(finalBitmapVideoFrame);
+                Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
+
+
+                currentFrame++;
             } while (currentFrame <= endFrame);
         }
 
@@ -489,7 +527,7 @@ public class ProcessingActivity extends AppCompatActivity {
                 final Bitmap finalBitmapVideoFrame = frame;
 
                 Log.d("Lightning Shower Debug:", "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
-                if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName)) {
+                if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName, precision)) {
                     lightningsCounterThrVer++;
                 }
                 refreshUIFunction(finalBitmapVideoFrame);
@@ -501,6 +539,18 @@ public class ProcessingActivity extends AppCompatActivity {
     }
 
     //Обработчики кнопок
+    /*
+    public void onClickStopButton(View view) {
+        if (typeOfTask == 0) {
+            JavaCVTask.cancel(true);
+            Button buttonStop = (Button) findViewById(R.id.buttonStop);
+            buttonStop.setVisibility(View.INVISIBLE);
+        } else {
+            MediaMRetrTask.cancel(true);
+        }
+    }
+    */
+    //Обработчики кнопок
     public void onClickStopButton(View view) {
         if (typeOfTask == 0) {
             JavaCVTask.cancel(true);
@@ -511,4 +561,33 @@ public class ProcessingActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onBackPressed() {
+        // TODO Auto-generated method stub
+        // super.onBackPressed();
+        openQuitDialog();
+    }
+
+    private void openQuitDialog() {
+        AlertDialog.Builder quitDialog = new AlertDialog.Builder(
+                ProcessingActivity.this);
+        quitDialog.setTitle("Выход: Вы уверены?");
+
+        quitDialog.setPositiveButton("Таки да!", new OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // TODO Auto-generated method stub
+                finish();
+            }
+        });
+
+        quitDialog.setNegativeButton("Нет", new OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // TODO Auto-generated method stub
+            }
+        });
+
+        quitDialog.show();
+    }
 }
