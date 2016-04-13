@@ -19,4 +19,11 @@
         android:key="isSaveSourceVideo"
         android:summary="Сохранять исходное видео при работе в режиме КАМЕРА"
         android:title="@string/setting_issavesourcevideo"/>
+    <!--- TODO сделать реверс точности, сейчас  -->
+    <EditTextPreference
+        android:key="thresholdOfRecongintion"
+        android:title="@string/tresholdOfRecName"
+        android:summary="Желаемая точность распознавания"
+        android:defaultValue="0.86"
+        android:dialogTitle="Точность распознавания от 0 до 1" />
 </PreferenceScreen>
