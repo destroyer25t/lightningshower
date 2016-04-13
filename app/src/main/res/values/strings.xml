@@ -16,5 +16,5 @@
     <string name="path_to_save_all">Папка для сохранения изображений</string>
     <string name="setting_issavesourcevideo">Сохранять исходное видео</string>
     <string name="title_activity_opencv_camera_activity">opencv_camera_activity</string>
-    <string name="tresholdOfRecName">Точность распознавания</string>
+    <string name="tresholdOfRecName">Ошибка распознавания</string>
 </resources>
