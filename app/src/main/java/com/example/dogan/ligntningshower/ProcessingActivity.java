@@ -3,8 +3,11 @@
 package com.example.dogan.ligntningshower;
 
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
@@ -12,6 +15,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -28,9 +33,12 @@ import org.bytedeco.javacv.FrameGrabber;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static com.example.dogan.ligntningshower.SupportFunctions.getFileName;
 import static com.example.dogan.ligntningshower.SupportFunctions.getPath;
+import static com.example.dogan.ligntningshower.SupportFunctions.killThread;
+import static java.lang.Thread.sleep;
 import static org.bytedeco.javacv.Parallel.getNumCores;
 
 public class ProcessingActivity extends AppCompatActivity {
@@ -44,10 +52,24 @@ public class ProcessingActivity extends AppCompatActivity {
     SharedPreferences prefs;    //настройки приложения
     float precision;
 
+    private static final int NOTIFY_ID = 13395;   //id нашего уведомления о выполнении поиска
+
+    //чтобы была возможность убивать потоки и следить за состоянием пришлось вынести в глобал
+
+    private Thread threads[];                           //объявляем массив потоков
+    private Thread firstThread;
+    private Thread lastThread;
+
+    private volatile int numberOfExecutedThreads = 0;     //увеличиваем при каждом завершившемся потоке
+
+
     //счетчики кадров-секунд-молний для runnable версии
     private volatile int framesCounterThrVer = 0;
     private volatile int secondsCounterThrVer = 0;
     private volatile int lightningsCounterThrVer = 0;
+    private volatile int secondsInMinuteCounterTheVer = 0;
+
+
 
     //все необходимые для работы свойства видео
     private double frameRateDouble;
@@ -86,6 +108,7 @@ public class ProcessingActivity extends AppCompatActivity {
      */
     public void Decomposing(String videopath) throws IOException {
 
+        Button buttonStop = (Button) findViewById(R.id.buttonStop);
         String typeOfDecomposing = prefs.getString("pref_decompose_mode", "OPENCVdecomposing");
 
         //получаем длительность видоса сразу же
@@ -120,7 +143,7 @@ public class ProcessingActivity extends AppCompatActivity {
             //MediaMRetrTask = new MediaMetadataRetriever_Decomposing_Task();
             //MediaMRetrTask.execute(videopath);
         }
-        //TODO запилить уведомление для шторки
+
     }
 
     /**
@@ -325,12 +348,12 @@ public class ProcessingActivity extends AppCompatActivity {
 
         int quarter = frames / numberOfThreads;     //делим количество кадров на количество потоков
         int rest = frames % numberOfThreads;        //получаем остаток в случае если количество кадров не кратно количесву потоков
-        Thread threads[];                           //объявляем массив потоков
+
         threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ
 
         //в зависимости от выбранного типа обработки typeOfTask...
         if (typeOfTask == 0) {
-            Thread firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
+            firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
             //задаем потоки между первым и последним
             if (numberOfThreads > 2) {
                 for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
@@ -338,7 +361,7 @@ public class ProcessingActivity extends AppCompatActivity {
                 }
             }
             //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
-            Thread lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+            lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
 
 
             //запускаем потоки
@@ -350,7 +373,7 @@ public class ProcessingActivity extends AppCompatActivity {
             }
             lastThread.start();
         } else {
-            Thread firstThread = new Thread(new MediaMetadataRetrDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
+            firstThread = new Thread(new MediaMetadataRetrDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
             //задаем потоки между первым и последним
             if (numberOfThreads > 2) {
                 for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
@@ -358,7 +381,7 @@ public class ProcessingActivity extends AppCompatActivity {
                 }
             }
             //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
-            Thread lastThread = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+            lastThread = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
 
 
             //запускаем потоки
@@ -412,6 +435,8 @@ public class ProcessingActivity extends AppCompatActivity {
         private int endFrame;
         private String videopath;
 
+        public boolean threadIsDone = false;
+
         public JavaCVDecomposing_Thread(int startFrame, int endFrame, String videopath) {
             this.startFrame = startFrame;
             this.endFrame = endFrame;
@@ -446,10 +471,11 @@ public class ProcessingActivity extends AppCompatActivity {
                 }
 
                 currentFrame = grabber.getFrameNumber();
-                counterFrames++;
+                secondsInMinuteCounterTheVer++;
                 Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
-                if (counterFrames == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
-                    counterFrames = 0;
+                Log.d("Lightning Shower Debug:", "Считаем до секунд: " + secondsInMinuteCounterTheVer);
+                if (secondsInMinuteCounterTheVer == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
+                    secondsInMinuteCounterTheVer = 0;
                     secondsCounterThrVer++;
                     Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
                 }
@@ -462,11 +488,17 @@ public class ProcessingActivity extends AppCompatActivity {
                     lightningsCounterThrVer++;
                 }
                 refreshUIFunction(finalBitmapVideoFrame);
-                Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
 
 
                 currentFrame++;
-            } while (currentFrame <= endFrame);
+            } while (currentFrame <= endFrame && framesCounterThrVer <= frames);
+
+            numberOfExecutedThreads++;
+            Log.d("Lightning Shower Debug:", "Поток отработал. Всего потоков отработало: " + numberOfExecutedThreads);
+
+            threadIsDone = true;
+
+
         }
 
     }
@@ -568,15 +600,31 @@ public class ProcessingActivity extends AppCompatActivity {
         openQuitDialog();
     }
 
+    private void killAllThreads() {
+        //сначала проверяем два потока которые точно должны быть
+        if (firstThread.isAlive()) {
+            killThread(firstThread);
+
+            //если запущен первый поток возможно запущены и другие, поэтому проверяем только после первого
+            for (Thread i : threads) {
+                if (i.isAlive()) killThread(i);
+            }
+        }
+        if (lastThread.isAlive()) killThread(lastThread);
+
+
+    }
+
+
     private void openQuitDialog() {
         AlertDialog.Builder quitDialog = new AlertDialog.Builder(
                 ProcessingActivity.this);
-        quitDialog.setTitle("Выход: Вы уверены?");
+        quitDialog.setTitle("Вы уверены? Процесс обработки будет остановлен");
 
-        quitDialog.setPositiveButton("Таки да!", new OnClickListener() {
+        quitDialog.setPositiveButton("Да", new OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                // TODO Auto-generated method stub
+                killAllThreads();
                 finish();
             }
         });
