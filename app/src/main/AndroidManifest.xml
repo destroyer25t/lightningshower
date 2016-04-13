@@ -22,7 +22,7 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_flash_on_white_48dp"
         android:label="@string/app_name"
         android:largeHeap="true"
         android:supportsRtl="true"
