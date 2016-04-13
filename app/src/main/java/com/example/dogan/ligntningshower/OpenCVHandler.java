@@ -104,7 +104,7 @@ public class OpenCVHandler {
         File dir = new File(file_path);
         if (!dir.exists())
             dir.mkdirs();
-        File file = new File(dir, fileOfName + counter + ".jpg");
+        File file = new File(dir, fileOfName + "_" + counter + ".jpg");
         FileOutputStream fOut = null;
         try {
             fOut = new FileOutputStream(file);
