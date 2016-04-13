@@ -96,14 +96,15 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        if (typeOfHandling == 2) {
+        //TODO: функцию удаления надо переместить куда-то в другое место
+       /* if (typeOfHandling == 2) {
             boolean isSaveSourceVideo;
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
             isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo", true);
             if (!isSaveSourceVideo) {
                 deleteVideoAfterProcessing(this, imageUri);
             }
-        }
+        }*/
 
     }
 
