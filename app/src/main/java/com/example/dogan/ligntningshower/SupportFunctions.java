@@ -1,13 +1,19 @@
 package com.example.dogan.ligntningshower;
 
+import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import java.io.File;
@@ -228,6 +234,24 @@ public class SupportFunctions {
             dummy.interrupt();
         }
 
+    }
+
+    public static void generateNotification(Context context, String message, Class<ProcessingActivity> activity) {
+        Intent notificationIntent = new Intent(context, activity);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent intent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
+
+        //TODO:Сейчас в SmallIcon лежит здоровая картинка, из за которой шторка лагает
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context)
+                .setSmallIcon(R.drawable.baranov)
+                .setContentTitle(context.getString(R.string.app_name))
+                .setContentIntent(intent)
+                .setPriority(3) //private static final PRIORITY_HIGH = 5;
+                .setContentText(message)
+                .setAutoCancel(true)
+                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE | Notification.DEFAULT_LIGHTS);
+        NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(0, mBuilder.build());
     }
 
 }
