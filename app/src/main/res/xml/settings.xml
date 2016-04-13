@@ -23,7 +23,7 @@
     <EditTextPreference
         android:key="thresholdOfRecongintion"
         android:title="@string/tresholdOfRecName"
-        android:summary="Желаемая точность распознавания"
+        android:summary="Желаемая ошибка распознавания"
         android:defaultValue="0.86"
-        android:dialogTitle="Точность распознавания от 0 до 1" />
+        android:dialogTitle="Ошибка распознавания от 0 до 1" />
 </PreferenceScreen>
