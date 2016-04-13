@@ -1,5 +1,3 @@
-//TODO:JavaCV пашет прекрасно, но AsyncTask блокируются где то через 20 секунд обработки
-
 package com.example.dogan.ligntningshower;
 
 import android.app.AlertDialog;
@@ -35,6 +33,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import static com.example.dogan.ligntningshower.SupportFunctions.generateNotification;
 import static com.example.dogan.ligntningshower.SupportFunctions.getFileName;
 import static com.example.dogan.ligntningshower.SupportFunctions.getPath;
 import static com.example.dogan.ligntningshower.SupportFunctions.killThread;
@@ -59,6 +58,7 @@ public class ProcessingActivity extends AppCompatActivity {
     private Thread threads[];                           //объявляем массив потоков
     private Thread firstThread;
     private Thread lastThread;
+    private Thread controlThread;
 
     private volatile int numberOfExecutedThreads = 0;     //увеличиваем при каждом завершившемся потоке
 
@@ -132,16 +132,17 @@ public class ProcessingActivity extends AppCompatActivity {
         frames = grabber.getLengthInFrames();
 
         int numOfCores = getNumCores(); //получаем количество ядер
+
+        ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
+        horizontalprogress.setMax(frames);  //задаем длину прогресс-бара в количество кадров
+        controlThread = new Thread(new ThreadControl(numOfCores));
+
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
             typeOfTask = 0;
-            videoProcessingControl(numOfCores);  //запуск в 4 потока
-            // JavaCVTask = new JavaCVDecomposing_Task();
-            //JavaCVTask.execute(videopath);
+            controlThread.start();
         } else {
             typeOfTask = 1;
-            videoProcessingControl(numOfCores);
-            //MediaMRetrTask = new MediaMetadataRetriever_Decomposing_Task();
-            //MediaMRetrTask.execute(videopath);
+            controlThread.start();
         }
 
     }
@@ -337,65 +338,6 @@ public class ProcessingActivity extends AppCompatActivity {
 
     }
 
-    /**
-     * Функция управляющая параллельными потоками. Создает
-     *
-     * @param numberOfThreads потоков и запускает в них JavaCVDecomposing_Thread функцию
-     */
-    protected void videoProcessingControl(int numberOfThreads) {
-        ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
-        horizontalprogress.setMax(frames);  //задаем длину прогресс-бара в количество кадров
-
-        int quarter = frames / numberOfThreads;     //делим количество кадров на количество потоков
-        int rest = frames % numberOfThreads;        //получаем остаток в случае если количество кадров не кратно количесву потоков
-
-        threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ
-
-        //в зависимости от выбранного типа обработки typeOfTask...
-        if (typeOfTask == 0) {
-            firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
-            //задаем потоки между первым и последним
-            if (numberOfThreads > 2) {
-                for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
-                    threads[i - 1] = new Thread(new JavaCVDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
-                }
-            }
-            //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
-            lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
-
-
-            //запускаем потоки
-            firstThread.start();
-            if (numberOfThreads > 2) {
-                for (int i = 1; i < numberOfThreads - 1; i++) {
-                    threads[i - 1].start();
-                }
-            }
-            lastThread.start();
-        } else {
-            firstThread = new Thread(new MediaMetadataRetrDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
-            //задаем потоки между первым и последним
-            if (numberOfThreads > 2) {
-                for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
-                    threads[i - 1] = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
-                }
-            }
-            //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
-            lastThread = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
-
-
-            //запускаем потоки
-            firstThread.start();
-            if (numberOfThreads > 2) {
-                for (int i = 1; i < numberOfThreads - 1; i++) {
-                    threads[i - 1].start();
-                }
-            }
-            lastThread.start();
-        }
-
-
-    }
 
     /**
      * Функция позволяющая обновлять элементы интерфейса. Также в нее передается Bitmap
@@ -422,7 +364,99 @@ public class ProcessingActivity extends AppCompatActivity {
 
     }
 
+    public void refreshUIAfterAll() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Button buttonStop = (Button) findViewById(R.id.buttonStop);
+                buttonStop.setVisibility(View.INVISIBLE);
+            }
+        });
+    }
 
+    /**
+     * Класс-поток для контроля остальных классов-потоков
+     */
+
+    protected class ThreadControl implements Runnable {
+        private int numberOfThreads;
+        int quarter = 0;     //делим количество кадров на количество потоков
+        int rest = 0;       //получаем остаток в случае если количество кадров не кратно количесву потоков
+
+
+        public ThreadControl(int numberOfThreads) {
+            this.numberOfThreads = numberOfThreads;
+            threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ
+            quarter = frames / numberOfThreads;
+            rest = frames % numberOfThreads;
+
+        }
+
+        public void run() {
+
+            long startTime = System.currentTimeMillis();    //засекаем время получения кадро
+
+            //в зависимости от выбранного типа обработки typeOfTask...
+            if (typeOfTask == 0) {
+                firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
+                //задаем потоки между первым и последним
+                if (numberOfThreads > 2) {
+                    for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
+                        threads[i - 1] = new Thread(new JavaCVDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
+                    }
+                }
+                //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
+                lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+
+
+                //запускаем потоки
+                firstThread.start();
+                if (numberOfThreads > 2) {
+                    for (int i = 1; i < numberOfThreads - 1; i++) {
+                        threads[i - 1].start();
+                    }
+                }
+                lastThread.start();
+            } else {
+                firstThread = new Thread(new MediaMetadataRetrDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
+                //задаем потоки между первым и последним
+                if (numberOfThreads > 2) {
+                    for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
+                        threads[i - 1] = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
+                    }
+                }
+                //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
+                lastThread = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+
+
+                //запускаем потоки
+                firstThread.start();
+                if (numberOfThreads > 2) {
+                    for (int i = 1; i < numberOfThreads - 1; i++) {
+                        threads[i - 1].start();
+                    }
+                }
+                lastThread.start();
+            }
+
+            while (numberOfExecutedThreads != numberOfThreads) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            long endTime = System.currentTimeMillis();
+            Log.d("TRULALA", "Время работы потоков: " + ((endTime - startTime) / 1000f));
+            refreshUIAfterAll();
+            generateNotification(getApplicationContext(), "Найдена куча молний!", ProcessingActivity.class);
+
+
+        }
+
+
+    }
     /**
      * Класс-поток, реализует обработку кадров переданных в конструктор с помощью FFmpeg
      * <p/>
@@ -595,7 +629,6 @@ public class ProcessingActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        // TODO Auto-generated method stub
         // super.onBackPressed();
         openQuitDialog();
     }
@@ -632,7 +665,6 @@ public class ProcessingActivity extends AppCompatActivity {
         quitDialog.setNegativeButton("Нет", new OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                // TODO Auto-generated method stub
             }
         });
 
