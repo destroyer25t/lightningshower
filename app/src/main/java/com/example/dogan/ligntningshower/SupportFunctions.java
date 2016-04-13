@@ -172,8 +172,11 @@ public class SupportFunctions {
      * @return имя файла с расширением
      */
     public static String getFileName(String fullpath) {
+        //TODO возможна ситуация когда в имени файла много точек
         String[] split = fullpath.split("/");
         String nameOfFile = split[split.length - 1];
+        split = nameOfFile.split(Pattern.quote("."));
+        nameOfFile = split[split.length - 2];
         return nameOfFile;
     }
 
@@ -241,9 +244,8 @@ public class SupportFunctions {
         notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent intent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
 
-        //TODO:Сейчас в SmallIcon лежит здоровая картинка, из за которой шторка лагает
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context)
-                .setSmallIcon(R.drawable.baranov)
+                .setSmallIcon(R.drawable.ic_flash_on_white_48dp)
                 .setContentTitle(context.getString(R.string.app_name))
                 .setContentIntent(intent)
                 .setPriority(3) //private static final PRIORITY_HIGH = 5;
