@@ -5,8 +5,8 @@
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="choose_method_ru">Выберите источник:</string>
-    <string name="fromCamera">Камера</string>
-    <string name="fromPhone">Память телефона</string>
+    <string name="fromCamera">КАМЕРА</string>
+    <string name="fromPhone">ПАМЯТЬ ТЕЛЕФОНА</string>
     <string name="fromOPENCV">Камера(OPENCV)</string>
 
     <string name="action_settings">Настройки</string>
@@ -17,4 +17,5 @@
     <string name="setting_issavesourcevideo">Сохранять исходное видео</string>
     <string name="title_activity_opencv_camera_activity">opencv_camera_activity</string>
     <string name="tresholdOfRecName">Ошибка распознавания</string>
+    <string name="welcome_text">это приложение помож\nет вам найти МОЛНИИ для начала распознава\nния выберите РЕЖИМ и нажмите кнопку СТАРТ</string>
 </resources>
