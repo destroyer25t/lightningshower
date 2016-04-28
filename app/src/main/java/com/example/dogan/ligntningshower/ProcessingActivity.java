@@ -319,7 +319,10 @@ public class ProcessingActivity extends AppCompatActivity {
         private int endFrame;
         private String videopath;
         private int frameStep;//специальная переменная для работы getFrameAtTime
+        private int frameFirst;//специальная переменная для работы getFrameAtTime
         private int currentFrame = 0; //номер текущего кадра который обрабатывается
+
+        public boolean threadIsDone = false;
 
 
         MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
@@ -332,8 +335,8 @@ public class ProcessingActivity extends AppCompatActivity {
             //устанавливаем источник для mediadata
             mediaMetadata.setDataSource(videopath);
             frameStep = (int) (1000000 / frameRateDouble); //1000000/FPS - через каждые frameStep микросекунд следует брать новый кадр
-
-            this.startFrame = frameStep * startFrame;
+            frameFirst = (int) (10000000 / frameRateDouble);
+            this.startFrame = frameFirst * startFrame;
             this.endFrame = frameStep * endFrame;
             this.videopath = videopath;
             this.videofileName = getFileName(videopath);
@@ -355,7 +358,7 @@ public class ProcessingActivity extends AppCompatActivity {
                 }
 
                 long startTime = System.currentTimeMillis();    //засекаем время получения кадра
-                frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
+                frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
                 long endTime = System.currentTimeMillis();
 
                 final Bitmap finalBitmapVideoFrame = frame;
@@ -367,7 +370,10 @@ public class ProcessingActivity extends AppCompatActivity {
                 refreshUIFunction(finalBitmapVideoFrame);
                 framesCounterThrVer++;
             }
+            numberOfExecutedThreads++;
+            Log.d("Lightning Shower Debug:", "Поток отработал. Всего потоков отработало: " + numberOfExecutedThreads);
 
+            threadIsDone = true;
         }
 
     }
