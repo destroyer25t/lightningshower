@@ -55,13 +55,14 @@ public class OpenCV2Handler {
         int areaOfTempRect = 0;
 
         Mat contoursVec = new Mat();
+        contours .8
         contoursVec.
         for (int i = 0; i < contours.size(); i++) {
             approxPolyDP(contours, contours_poly, 3, true);    //аппроксимируем контур более простым контуром
             tempRect = boundingRect(Mat(contours_poly[i]));                //рисуем вокруг него обр. прям.
             areaOfTempRect = tempRect.width() * tempRect.height();            //вычисляем площадь
             if (areaOfTempRect > scaleCoeff * 20) {                        //отсеиваем все слишком маленькое относительно картинки
-                goodContours.add(contours_poly[i]);                //впихиваем контур в вектор хороших контуров
+                goodContours.add(contours_poly);                //впихиваем контур в вектор хороших контуров
                 boundRect.add(tempRect);                            //впихиваем обр. прям. в вектор обр.прям.
             }
 
@@ -87,7 +88,6 @@ public class OpenCV2Handler {
         /// Copy the source image
         Mat copy;
         copy = src.clone();
-
         /// Apply corner detection
         goodFeaturesToTrack(src_gray,
                 corners,
