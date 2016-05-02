@@ -2,7 +2,9 @@ package com.example.dogan.ligntningshower;
 
 import android.graphics.Bitmap;
 import android.os.Environment;
+import android.util.Log;
 
+import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.opencv_core;
 
 import java.io.File;
@@ -14,30 +16,7 @@ import java.util.Vector;
 
 import static org.bytedeco.javacpp.Loader.sizeof;
 import static org.bytedeco.javacpp.opencv_core.*;
-import static org.bytedeco.javacpp.opencv_core.CvBox2D;
-import static org.bytedeco.javacpp.opencv_core.CvContour;
-import static org.bytedeco.javacpp.opencv_core.CvMemStorage;
-import static org.bytedeco.javacpp.opencv_core.CvSeq;
-import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
-import static org.bytedeco.javacpp.opencv_core.IplImage;
-import static org.bytedeco.javacpp.opencv_core.cvCreateImage;
-import static org.bytedeco.javacpp.opencv_core.cvCreateMemStorage;
-import static org.bytedeco.javacpp.opencv_core.cvGetSize;
-import static org.bytedeco.javacpp.opencv_core.cvPoint;
-import static org.bytedeco.javacpp.opencv_imgproc.CV_LINK_RUNS;
-import static org.bytedeco.javacpp.opencv_imgproc.CV_RETR_LIST;
-import static org.bytedeco.javacpp.opencv_imgproc.CV_RGB2GRAY;
-import static org.bytedeco.javacpp.opencv_imgproc.CV_THRESH_BINARY;
-import static org.bytedeco.javacpp.opencv_imgproc.cvApproxPoly;
-import static org.bytedeco.javacpp.opencv_imgproc.cvBoundingRect;
-import static org.bytedeco.javacpp.opencv_imgproc.cvContourArea;
-import static org.bytedeco.javacpp.opencv_imgproc.cvContourPerimeter;
-import static org.bytedeco.javacpp.opencv_imgproc.cvCvtColor;
-import static org.bytedeco.javacpp.opencv_imgproc.cvFindContours;
-import static org.bytedeco.javacpp.opencv_imgproc.cvGoodFeaturesToTrack;
-import static org.bytedeco.javacpp.opencv_imgproc.cvMinAreaRect2;
-import static org.bytedeco.javacpp.opencv_imgproc.cvThreshold;
-import static org.bytedeco.javacpp.opencv_imgproc.goodFeaturesToTrack;
+import static org.bytedeco.javacpp.opencv_imgproc.*;
 
 /**
  * Created by dogan on 18.03.2016
@@ -81,7 +60,7 @@ public class OpenCV3Handler {
         contours.deallocate();
     }
 
-    private void processingCorners(IplImage Igray, int scaleCoeff) {
+    private void processingCorners(IplImage Igray, double scaleCoeff) {
         Mat src_gray = new Mat(Igray);
         Mat corners = new Mat();
 
@@ -90,24 +69,28 @@ public class OpenCV3Handler {
         double qualityLevel = 0.01;
         double minDistance = scaleCoeff / 2;
 
-        // cvGoodFeaturesToTrack(Igray, Igray, Igray,cornersPoints, max_corners, qualityLevel,minDistance, mask, blockSize,useHarrisDetector,k );
-
+        CvPoint2D32f cornersPoints = new CvPoint2D32f(max_corners);
+        //CvArr cvarr1.
+        IntPointer intPointer = new IntPointer(max_corners);
+        cvGoodFeaturesToTrack(Igray, Igray, Igray, cornersPoints, intPointer, qualityLevel, minDistance);
+/*
         goodFeaturesToTrack(src_gray,
                 corners,
                 max_corners,
                 qualityLevel,
                 minDistance);
-        ArrayList<Float> arrayList = new ArrayList<>(corners.size());
-        if (corners.isContinuous()) {
-            arrayList.
-        }
-        for (int i = 0; i < rectsList.size(); i++) {
-            Rect rect = rectsList.get(i);
-        }
+*/
+        Log.d("Lightning Shower Debug:", "Capacity intPointer -  " + intPointer.capacity());
+        ArrayList<Point> arrayList = new ArrayList<Point>(intPointer.capacity());
+
+
+        //for (int i = 0; i < rectsList.size(); i++) {
+        //  Rect rect = rectsList.get(i);
+        //}
 
     }
 
-    public boolean preparingBeforeFindContours(Bitmap image, int numberOfFrame, String fileOfName, float precision) {
+    public boolean preparingBeforeFindContours(Bitmap image, int numberOfFrame, String fileOfName) {
         if (image == null) {
             return false;
         }
@@ -126,20 +109,22 @@ public class OpenCV3Handler {
         Iat = cvCreateImage(cvGetSize(Igray), IPL_DEPTH_8U, 1);
         cvThreshold(Igray, Iat, offset, 255, CV_THRESH_BINARY);
 
-
+        findCountoursDetection(scaleCoeff, Iat, Igray);
+        Log.d("Lightning Shower Debug:", "GOVNO");
+        processingCorners(Igray, scaleCoeff);
         //контуры
-        if (findCountoursDetection(scaleCoeff, Iat, Igray)) {
-            saveBitmapToPhone(image, fileOfName, numberOfFrame);
-            Igray.deallocate();
-            Iat.deallocate();
-            Icolor.deallocate();
-            return true;
-        } else {
+
+        //saveBitmapToPhone(image, fileOfName, numberOfFrame);
+        //Igray.deallocate();
+        // Iat.deallocate();
+        //Icolor.deallocate();
+        //return true;
+        //} else {
             Igray.deallocate();
             Iat.deallocate();
             Icolor.deallocate();
             return false;
-        }
+        // }
     }
 
     void saveBitmapToPhone(Bitmap image, String fileOfName, int counter) {

@@ -251,6 +251,7 @@ public class ProcessingActivity extends AppCompatActivity {
             int currentFrame = 0;
             String videofileName = getFileName(videopath);
             OpenCVHandler openCVHandler = new OpenCVHandler();
+            OpenCV3Handler openCV3Handler = new OpenCV3Handler();
 
             int counterFrames = 0;   //счетчик кадров для секунд
 
@@ -286,6 +287,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
                 final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
+                openCV3Handler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName);
                 if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName, precision)) {
                     lightningsCounterThrVer++;
                 }
