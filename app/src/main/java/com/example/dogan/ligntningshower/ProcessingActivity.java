@@ -153,57 +153,62 @@ public class ProcessingActivity extends AppCompatActivity {
 
         public ThreadControl(int numberOfThreads) {
             this.numberOfThreads = numberOfThreads;
-            threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ
+            if (numberOfThreads > 2)
+                threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ потоков
             quarter = frames / numberOfThreads;
             rest = frames % numberOfThreads;
-
         }
 
         public void run() {
 
             long startTime = System.currentTimeMillis();    //засекаем время получения кадро
 
-            //в зависимости от выбранного типа обработки typeOfTask...
+            //в зависимости от выбранного типа обработки typeOfTask инициализируем первый поток и инициализируем последний поток.
+            // Первый и последний будут всегда (случай с одним процессором отдельно)...
             if (typeOfTask == 0) {
-                firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
-                //задаем потоки между первым и последним
-                if (numberOfThreads > 2) {
-                    for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
-                        threads[i - 1] = new Thread(new JavaCVDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
-                    }
-                }
-                //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
-                lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+                firstThread = new Thread(new JavaCVDecomposing_Thread(1, quarter, videopath));
 
+                if (numberOfThreads > 1) {
+                    lastThread = new Thread(new JavaCVDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
 
-                //запускаем потоки
-                firstThread.start();
-                if (numberOfThreads > 2) {
-                    for (int i = 1; i < numberOfThreads - 1; i++) {
-                        threads[i - 1].start();
+                    //запускаем потоки и инициализируем доп потоки если ядер больше 2
+                    firstThread.start();
+                    if (numberOfThreads > 2) {
+                        for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
+                            threads[i - 1] = new Thread(new JavaCVDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
+                        }
+
+                        for (int i = 1; i < numberOfThreads - 1; i++) {
+                            threads[i - 1].start();
+                        }
                     }
+                    lastThread.start();
+                } else {
+                    firstThread.start();        //если поток всего один - сразу его и запускаем
                 }
-                lastThread.start();
+
             } else {
-                firstThread = new Thread(new MediaMetadataRetrDecomposing_Thread(1, quarter, videopath)); //запускаем первый поток
-                //задаем потоки между первым и последним
-                if (numberOfThreads > 2) {
-                    for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
-                        threads[i - 1] = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
-                    }
-                }
-                //запускаем последний поток. Первый и последний будут всегда (мы не используем количество потоков меньше 2)
-                lastThread = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
+                //аналогично для второго типа обработки
+                firstThread = new Thread(new MediaMetadataRetrDecomposing_Thread(1, quarter, videopath));
+                if (numberOfThreads > 1) {
+                    lastThread = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * (numberOfThreads - 1) + 1, quarter * numberOfThreads + rest, videopath));
 
+                    //запускаем потоки
+                    firstThread.start();
+                    if (numberOfThreads > 2) {
+                        for (int i = 1; i < numberOfThreads - 1; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
+                            threads[i - 1] = new Thread(new MediaMetadataRetrDecomposing_Thread(quarter * i + 1, quarter * (i + 1), videopath));   //i-1 потому что в массиве элементы с 0
+                        }
 
-                //запускаем потоки
-                firstThread.start();
-                if (numberOfThreads > 2) {
-                    for (int i = 1; i < numberOfThreads - 1; i++) {
-                        threads[i - 1].start();
+                        for (int i = 1; i < numberOfThreads - 1; i++) {
+                            threads[i - 1].start();
+                        }
                     }
+                    lastThread.start();
+                } else {
+                    firstThread.start();
                 }
-                lastThread.start();
+
             }
 
             while (numberOfExecutedThreads != numberOfThreads) {
@@ -287,7 +292,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
                 final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
-                openCV3Handler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName);
+                //openCV3Handler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName);    говно собачье
                 if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName, precision)) {
                     lightningsCounterThrVer++;
                 }

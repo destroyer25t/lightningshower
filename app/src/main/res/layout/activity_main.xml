@@ -7,7 +7,7 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.example.dogan.ligntningshower.MainActivity">
+    tools:context="com.example.dogan.ligntningshower.MainActivity"><![CDATA[
 
 
     android:orientation="vertical"
@@ -16,26 +16,18 @@
     android:layout_alignParentTop="true"
     android:layout_centerHorizontal="true">
 
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="@string/welcome_text"
-        android:id="@+id/textView"
-        android:textSize="28dp"
-        android:layout_above="@+id/radioGroup"
-        android:layout_alignParentEnd="true"
-        android:layout_marginBottom="26dp" />
+    ]]>
 
     <RadioGroup
         android:layout_width="match_parent"
             android:layout_height="wrap_content"
         android:id="@+id/radioGroup"
-        android:layout_marginBottom="26dp"
-        android:layout_above="@+id/butStart"
-        android:layout_alignParentEnd="true">
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="124dp">
 
-        <RadioButton
+
+    <RadioButton
             android:id="@+id/radButFromPhone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -68,7 +60,6 @@
 
     </RadioGroup>
 
-
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -79,7 +70,7 @@
         android:textColor="#ef9a9a"
         android:onClick="onClickbutStart"
         android:layout_alignParentBottom="true"
-        android:layout_alignEnd="@+id/radioGroup" />
+        android:layout_centerHorizontal="true" />
 
 
 </RelativeLayout>
