@@ -18,4 +18,8 @@
     <string name="title_activity_opencv_camera_activity">opencv_camera_activity</string>
     <string name="tresholdOfRecName">Ошибка распознавания</string>
     <string name="welcome_text">это приложение помож\nет вам найти МОЛНИИ для начала распознава\nния выберите РЕЖИМ и нажмите кнопку СТАРТ</string>
+    <string name="title_activity_navig_drawer_main">NavigDrawerMain</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 </resources>

@@ -47,6 +47,7 @@ public class ProcessingActivity extends AppCompatActivity {
     String videopath;   //путь до видео
     SharedPreferences prefs;    //настройки приложения
     float precision;
+    boolean isStopped = false;
 
     //чтобы была возможность убивать потоки и следить за состоянием пришлось вынести в глобал
 
@@ -300,7 +301,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
                 currentFrame++;
-            } while (currentFrame <= endFrame && framesCounterThrVer <= frames);
+            } while (currentFrame <= endFrame && framesCounterThrVer <= frames && !isStopped);
 
             numberOfExecutedThreads++;
             Log.d("Lightning Shower Debug:", "Поток отработал. Всего потоков отработало: " + numberOfExecutedThreads);
@@ -355,27 +356,31 @@ public class ProcessingActivity extends AppCompatActivity {
 
             int counterFrames = 0;
             for (currentFrame = startFrame; currentFrame < endFrame; currentFrame += frameStep) {
+                if (isStopped) {
+                    break;
+                } else {
+                    secondsInMinuteCounterTheVer++;
+                    Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame / frameStep);
+                    if (secondsInMinuteCounterTheVer == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
+                        secondsInMinuteCounterTheVer = 0;
+                        secondsCounterThrVer++;
+                        Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
+                    }
 
-                secondsInMinuteCounterTheVer++;
-                Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame / frameStep);
-                if (secondsInMinuteCounterTheVer == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
-                    secondsInMinuteCounterTheVer = 0;
-                    secondsCounterThrVer++;
-                    Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
+                    long startTime = System.currentTimeMillis();    //засекаем время получения кадра
+                    frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                    long endTime = System.currentTimeMillis();
+
+                    final Bitmap finalBitmapVideoFrame = frame;
+
+                    Log.d("Lightning Shower Debug:", "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
+                    if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName, precision)) {
+                        lightningsCounterThrVer++;
+                    }
+                    refreshUIFunction(finalBitmapVideoFrame);
+                    framesCounterThrVer++;
                 }
 
-                long startTime = System.currentTimeMillis();    //засекаем время получения кадра
-                frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-                long endTime = System.currentTimeMillis();
-
-                final Bitmap finalBitmapVideoFrame = frame;
-
-                Log.d("Lightning Shower Debug:", "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
-                if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName, precision)) {
-                    lightningsCounterThrVer++;
-                }
-                refreshUIFunction(finalBitmapVideoFrame);
-                framesCounterThrVer++;
             }
             numberOfExecutedThreads++;
             Log.d("Lightning Shower Debug:", "Поток отработал. Всего потоков отработало: " + numberOfExecutedThreads);
@@ -390,6 +395,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
     public void onClickStopButton(View view) {
+        isStopped = true;
         killAllThreads();
     }
 

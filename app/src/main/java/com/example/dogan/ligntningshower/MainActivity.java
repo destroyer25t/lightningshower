@@ -7,12 +7,14 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.Toast;
 
 import static com.example.dogan.ligntningshower.SupportFunctions.deleteVideoAfterProcessing;
 
@@ -51,8 +53,9 @@ public class MainActivity extends AppCompatActivity {
     public void onClickbutStart(View view) {
         RadioButton mRadButFromCamera = (RadioButton) findViewById(R.id.radButFromCamera);
         RadioButton mRadButFromPhone = (RadioButton) findViewById(R.id.radButFromPhone);
-        RadioButton mRadButFROMopencv = (RadioButton) findViewById(R.id.radButLiveCamera);
+        //RadioButton mRadButFROMopencv = (RadioButton) findViewById(R.id.radButLiveCamera);
         Button buttonStart = (Button) findViewById(R.id.butStart);
+
 
         if (mRadButFromCamera.isChecked()) {
             typeOfHandling = 2;
@@ -62,10 +65,16 @@ public class MainActivity extends AppCompatActivity {
             Intent photoPickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
             photoPickerIntent.setType("video/*");
             startActivityForResult(photoPickerIntent, Pick_image);
-        } else if (mRadButFROMopencv.isChecked()) {
+        }/* else if (mRadButFROMopencv.isChecked()) {
             typeOfHandling = 3;
             Intent liveCameraIntent = new Intent(MainActivity.this, OpenCVCameraActivity.class);
             startActivity(liveCameraIntent);
+        }*/ else {
+            Toast toast = Toast.makeText(getApplicationContext(),
+                    "Выберите источник видео!",
+                    Toast.LENGTH_SHORT);
+            toast.setGravity(Gravity.CENTER, 0, 0);
+            toast.show();
         }
 
 

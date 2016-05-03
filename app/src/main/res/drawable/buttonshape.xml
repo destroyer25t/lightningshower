@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#3f52b5" />
+        </shape>
+    </item>
+    <item
+        android:drawable="@drawable/lightning_svg"
+        android:bottom="15dp"
+        android:left="40dp"
+        android:right="30dp"
+        android:top="30dp" />
+</layer-list>
