@@ -153,6 +153,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
         public ThreadControl(int numberOfThreads) {
+            numberOfThreads = 1;
             this.numberOfThreads = numberOfThreads;
             if (numberOfThreads > 2)
                 threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ потоков
@@ -293,7 +294,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
                 final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
-                //openCV3Handler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName);    говно собачье
+                openCV3Handler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName);
                 if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName, precision)) {
                     lightningsCounterThrVer++;
                 }
@@ -335,7 +336,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
         MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
         OpenCVHandler openCVHandler = new OpenCVHandler();
-
+        OpenCV3Handler openCV3Handler = new OpenCV3Handler();
         String videofileName;
         Bitmap frame;
 
@@ -368,12 +369,13 @@ public class ProcessingActivity extends AppCompatActivity {
                     }
 
                     long startTime = System.currentTimeMillis();    //засекаем время получения кадра
-                    frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                    frame = mediaMetadata.getFrameAtTime(currentFrame * 1000, MediaMetadataRetriever.OPTION_CLOSEST);
                     long endTime = System.currentTimeMillis();
 
                     final Bitmap finalBitmapVideoFrame = frame;
 
                     Log.d("Lightning Shower Debug:", "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
+                    //openCV3Handler.preparingBeforeFindContours(frame, currentFrame, videofileName);
                     if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName, precision)) {
                         lightningsCounterThrVer++;
                     }
@@ -414,12 +416,16 @@ public class ProcessingActivity extends AppCompatActivity {
         if (firstThread.isAlive()) {
             killThread(firstThread);
 
-            //если запущен первый поток возможно запущены и другие, поэтому проверяем только после первого
-            for (Thread i : threads) {
-                if (i.isAlive()) killThread(i);
+            if (SupportFunctions.getNumCores() > 1) {
+                //если запущен первый поток возможно запущены и другие, поэтому проверяем только после первого
+                for (Thread i : threads) {
+                    if (i.isAlive()) killThread(i);
+                }
+                if (lastThread.isAlive()) killThread(lastThread);
             }
+
         }
-        if (lastThread.isAlive()) killThread(lastThread);
+
         refreshUIAfterAll();
 
     }

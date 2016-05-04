@@ -29,8 +29,8 @@ public class OpenCV3Handler {
     private void findCountoursDetection(double scaleCoeff, IplImage Iat, IplImage Igray) {
         CvMemStorage storage = cvCreateMemStorage(0);
         CvMemStorage storageApprox = cvCreateMemStorage(0);
-
         CvSeq contours = new CvSeq();
+
         CvRect rect;
         Rect kek;
 
@@ -38,6 +38,8 @@ public class OpenCV3Handler {
         //long startTime = System.currentTimeMillis();    //засекаем время получения кадро
         int contoursCont = cvFindContours(Iat, storage, contours, sizeof(CvContour.class), CV_RETR_LIST, CV_LINK_RUNS, cvPoint(0, 0));
         cvApproxPoly(contours, sizeof(CvContour.class), storageApprox, 0, 3, 1);
+
+
         //long endTime = System.currentTimeMillis();
         //Log.d("TRULALA", "Время работы cvFindContours: " + ((endTime - startTime) / 1000f));
 
@@ -56,8 +58,10 @@ public class OpenCV3Handler {
             }
         }
 
+        Log.d("Lightning Shower Debug:", "ApproxPoly отработал");
         storage.deallocate();
         contours.deallocate();
+
     }
 
     private void processingCorners(IplImage Igray, double scaleCoeff) {
@@ -111,7 +115,7 @@ public class OpenCV3Handler {
 
         findCountoursDetection(scaleCoeff, Iat, Igray);
         Log.d("Lightning Shower Debug:", "GOVNO");
-        processingCorners(Igray, scaleCoeff);
+        //processingCorners(Igray, scaleCoeff);
         //контуры
 
         //saveBitmapToPhone(image, fileOfName, numberOfFrame);
