@@ -38,10 +38,11 @@
             android:label="@string/app_name"
             android:screenOrientation="landscape" />
         <activity android:name=".ProcessingActivity" />
-        <activity android:name=".enchancedgallery"></activity>
+        <activity
+            android:name=".enchancedgallery"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
         <activity
             android:name=".navdrawer"
-            android:label="@string/title_activity_navdrawer"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

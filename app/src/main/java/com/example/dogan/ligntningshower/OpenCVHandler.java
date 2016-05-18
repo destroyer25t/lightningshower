@@ -100,7 +100,8 @@ public class OpenCVHandler {
     }
 
     void saveBitmapToPhone(Bitmap image, String fileOfName, int counter) {
-        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "Movies";
+        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "Movies"; //папка где хранятся видосы
+        file_path = file_path + File.separator + fileOfName;
         File dir = new File(file_path);
         if (!dir.exists())
             dir.mkdirs();
