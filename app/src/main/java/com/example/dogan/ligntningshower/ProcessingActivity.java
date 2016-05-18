@@ -72,6 +72,7 @@ public class ProcessingActivity extends AppCompatActivity {
     private int durationMs; //длительность видео
     private int durationS;
     private int frames;
+    private int frameDuration;
 
 
     @Override
@@ -125,6 +126,8 @@ public class ProcessingActivity extends AppCompatActivity {
         durationMs = Integer.parseInt(stringDuration);
         durationS = durationMs / 1000;
         frames = grabber.getLengthInFrames();
+        frameDuration = durationMs / frames * 1000;
+        //frames=durationS*frameRate;
 
         int numOfCores = getNumCores(); //получаем количество ядер
 
@@ -153,7 +156,6 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
         public ThreadControl(int numberOfThreads) {
-            numberOfThreads = 1;
             this.numberOfThreads = numberOfThreads;
             if (numberOfThreads > 2)
                 threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ потоков
@@ -224,7 +226,7 @@ public class ProcessingActivity extends AppCompatActivity {
             long endTime = System.currentTimeMillis();
             Log.d("TRULALA", "Время работы потоков: " + ((endTime - startTime) / 1000f));
             refreshUIAfterAll();
-            generateNotification(getApplicationContext(), "Найдена куча молний!", ProcessingActivity.class);
+            generateNotification(getApplicationContext(), "Видео обработано!", ProcessingActivity.class);
 
 
         }
@@ -273,7 +275,7 @@ public class ProcessingActivity extends AppCompatActivity {
             }
 
 
-            do {
+            while (currentFrame <= endFrame && framesCounterThrVer <= frames && !isStopped) {
                 try {
                     videoframe = grabber.grab();
                 } catch (FrameGrabber.Exception e) {
@@ -294,7 +296,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
                 final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
-                openCV3Handler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName);
+                // openCV3Handler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName);
                 if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName, precision)) {
                     lightningsCounterThrVer++;
                 }
@@ -302,8 +304,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
                 currentFrame++;
-            } while (currentFrame <= endFrame && framesCounterThrVer <= frames && !isStopped);
-
+            }
             numberOfExecutedThreads++;
             Log.d("Lightning Shower Debug:", "Поток отработал. Всего потоков отработало: " + numberOfExecutedThreads);
 
@@ -345,8 +346,9 @@ public class ProcessingActivity extends AppCompatActivity {
             mediaMetadata.setDataSource(videopath);
             frameStep = (int) (1000000 / frameRateDouble); //1000000/FPS - через каждые frameStep микросекунд следует брать новый кадр
             frameFirst = (int) (10000000 / frameRateDouble);
-            this.startFrame = frameFirst * startFrame;
-            this.endFrame = frameStep * endFrame;
+            this.startFrame = frameStep * startFrame;
+            // this.endFrame = frameStep * endFrame;
+            this.endFrame = frameDuration * endFrame;
             this.videopath = videopath;
             this.videofileName = getFileName(videopath);
 
@@ -369,8 +371,10 @@ public class ProcessingActivity extends AppCompatActivity {
                     }
 
                     long startTime = System.currentTimeMillis();    //засекаем время получения кадра
-                    frame = mediaMetadata.getFrameAtTime(currentFrame * 1000, MediaMetadataRetriever.OPTION_CLOSEST);
+                    frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
                     long endTime = System.currentTimeMillis();
+
+                    Log.d("Lightning Shower Debug:", "gFAT: " + currentFrame);
 
                     final Bitmap finalBitmapVideoFrame = frame;
 
@@ -416,7 +420,7 @@ public class ProcessingActivity extends AppCompatActivity {
         if (firstThread.isAlive()) {
             killThread(firstThread);
 
-            if (SupportFunctions.getNumCores() > 1) {
+            if (getNumCores() > 1) {
                 //если запущен первый поток возможно запущены и другие, поэтому проверяем только после первого
                 for (Thread i : threads) {
                     if (i.isAlive()) killThread(i);
