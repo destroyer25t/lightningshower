@@ -24,6 +24,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacv.AndroidFrameConverter;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
@@ -38,6 +39,11 @@ import static com.example.dogan.ligntningshower.SupportFunctions.getFileName;
 import static com.example.dogan.ligntningshower.SupportFunctions.getPath;
 import static com.example.dogan.ligntningshower.SupportFunctions.killThread;
 import static java.lang.Thread.sleep;
+import static org.bytedeco.javacpp.Loader.sizeof;
+import static org.bytedeco.javacpp.opencv_core.cvPoint;
+import static org.bytedeco.javacpp.opencv_imgproc.CV_LINK_RUNS;
+import static org.bytedeco.javacpp.opencv_imgproc.CV_RETR_LIST;
+import static org.bytedeco.javacpp.opencv_imgproc.cvFindContours;
 import static org.bytedeco.javacv.Parallel.getNumCores;
 
 public class ProcessingActivity extends AppCompatActivity {
@@ -55,6 +61,7 @@ public class ProcessingActivity extends AppCompatActivity {
     private Thread firstThread;
     private Thread lastThread;
     private Thread controlThread;
+    private Thread controlThreadDirect;
 
     private volatile int numberOfExecutedThreads = 0;     //увеличиваем при каждом завершившемся потоке
 
@@ -133,14 +140,15 @@ public class ProcessingActivity extends AppCompatActivity {
 
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
         horizontalprogress.setMax(frames);  //задаем длину прогресс-бара в количество кадров
-        controlThread = new Thread(new ThreadControl(numOfCores));
+        // controlThread = new Thread(new ThreadControl(1)); //numOfCores
+        controlThreadDirect = new Thread(new ThreadControlDirect(numOfCores));
 
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
             typeOfTask = 0;
-            controlThread.start();
+            controlThreadDirect.start();
         } else {
             typeOfTask = 1;
-            controlThread.start();
+            controlThreadDirect.start();
         }
 
     }
@@ -258,6 +266,7 @@ public class ProcessingActivity extends AppCompatActivity {
             Bitmap bitmapVideoFrame;
             Frame videoframe = null;
             int currentFrame = 0;
+            int previousFrame = 0;
             String videofileName = getFileName(videopath);
             OpenCVHandler openCVHandler = new OpenCVHandler();
             OpenCV3Handler openCV3Handler = new OpenCV3Handler();
@@ -270,40 +279,53 @@ public class ProcessingActivity extends AppCompatActivity {
             try {
                 grabber.start();
                 grabber.setFrameNumber(startFrame);
+                previousFrame = startFrame - 1;
             } catch (FrameGrabber.Exception e) {
                 e.printStackTrace();
             }
 
 
             while (currentFrame <= endFrame && framesCounterThrVer <= frames && !isStopped) {
+                //Log.d("Lightning Shower Debug:", "Шаг цикла");
                 try {
                     videoframe = grabber.grab();
+
                 } catch (FrameGrabber.Exception e) {
                     e.printStackTrace();
                 }
 
                 currentFrame = grabber.getFrameNumber();
                 secondsInMinuteCounterTheVer++;
-                Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
-                Log.d("Lightning Shower Debug:", "Считаем до секунд: " + secondsInMinuteCounterTheVer);
+                //Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
+                //Log.d("Lightning Shower Debug:", "Считаем до секунд: " + secondsInMinuteCounterTheVer);
                 if (secondsInMinuteCounterTheVer == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
                     secondsInMinuteCounterTheVer = 0;
                     secondsCounterThrVer++;
-                    Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
+                    //  Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
                 }
                 bitmapVideoFrame = converterToBitmap.convert(videoframe);
                 framesCounterThrVer++;
+                Log.d("Lightning Shower Debug:", "Кадр видео общий: " + framesCounterThrVer);
 
 
                 final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
-                // openCV3Handler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName);
                 if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName, precision)) {
                     lightningsCounterThrVer++;
                 }
                 refreshUIFunction(finalBitmapVideoFrame);
 
+                //Log.d("Lightning Shower Debug:", "Предыдущий кадр: " + previousFrame);
+                if (previousFrame >= currentFrame) {
+                    currentFrame += 2;
+                    //Log.d("Lightning Shower Debug:", "Попался проблемный. Увеличиваем на 2: " + currentFrame);
+                    try {
+                        grabber.setFrameNumber(currentFrame);
+                    } catch (FrameGrabber.Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                previousFrame++;
 
-                currentFrame++;
             }
             numberOfExecutedThreads++;
             Log.d("Lightning Shower Debug:", "Поток отработал. Всего потоков отработало: " + numberOfExecutedThreads);
@@ -373,12 +395,242 @@ public class ProcessingActivity extends AppCompatActivity {
                     long startTime = System.currentTimeMillis();    //засекаем время получения кадра
                     frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
                     long endTime = System.currentTimeMillis();
-
-                    Log.d("Lightning Shower Debug:", "gFAT: " + currentFrame);
+                    Log.d("Lightning Shower Debug:", "MMR: " + ((endTime - startTime) / 1000f));
+                    //Log.d("Lightning Shower Debug:", "gFAT: " + currentFrame);
 
                     final Bitmap finalBitmapVideoFrame = frame;
 
-                    Log.d("Lightning Shower Debug:", "Время выдергивания из видоса: " + ((endTime - startTime) / 1000f));
+
+                    //openCV3Handler.preparingBeforeFindContours(frame, currentFrame, videofileName);
+                    if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName, precision)) {
+                        lightningsCounterThrVer++;
+                    }
+                    refreshUIFunction(finalBitmapVideoFrame);
+                    framesCounterThrVer++;
+                }
+
+            }
+            numberOfExecutedThreads++;
+            Log.d("Lightning Shower Debug:", "Поток отработал. Всего потоков отработало: " + numberOfExecutedThreads);
+
+            threadIsDone = true;
+        }
+
+    }
+
+
+    //------------обработка кадров по порядку
+    protected class ThreadControlDirect implements Runnable {
+        private int numberOfThreads;
+
+        public ThreadControlDirect(int numberOfThreads) {
+            this.numberOfThreads = numberOfThreads;
+            if (numberOfThreads > 2)
+                threads = new Thread[numberOfThreads - 2];      //инициализируем МАССИВ потоков
+        }
+
+        public void run() {
+
+            long startTime = System.currentTimeMillis();    //засекаем время получения кадро
+
+            //в зависимости от выбранного типа обработки typeOfTask инициализируем первый поток и инициализируем последний поток.
+            // Первый и последний будут всегда (случай с одним процессором отдельно)...
+            if (typeOfTask == 0) {
+                firstThread = new Thread(new JavaCVDecomposingDirect_Thread(1, frames, videopath, numberOfThreads));
+
+                if (numberOfThreads > 1) {
+                    lastThread = new Thread(new JavaCVDecomposingDirect_Thread(numberOfThreads, frames, videopath, numberOfThreads));
+
+                    //запускаем потоки и инициализируем доп потоки если ядер больше 2
+                    firstThread.start();
+                    if (numberOfThreads > 2) {
+                        for (int i = 2; i < numberOfThreads; i++) {  //numberOfThreads-1 потому что последний поток отдельно. i=1 тоже
+                            threads[i - 2] = new Thread(new JavaCVDecomposingDirect_Thread(i, frames, videopath, numberOfThreads));   //i-1 потому что в массиве элементы с 0
+                        }
+
+                        for (int i = 2; i < numberOfThreads; i++) {
+                            threads[i - 2].start();
+                        }
+                    }
+                    lastThread.start();
+                } else {
+                    firstThread.start();        //если поток всего один - сразу его и запускаем
+                }
+
+            }
+
+            while (numberOfExecutedThreads != numberOfThreads) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            long endTime = System.currentTimeMillis();
+            Log.d("TRULALA", "Время работы потоков: " + ((endTime - startTime) / 1000f));
+            refreshUIAfterAll();
+            generateNotification(getApplicationContext(), "Видео обработано!", ProcessingActivity.class);
+
+
+        }
+
+
+    }
+
+
+    protected class JavaCVDecomposingDirect_Thread implements Runnable {
+        private int startFrame;
+        private int endFrame;
+        private int numberOfThreads;
+        private String videopath;
+
+        public boolean threadIsDone = false;
+
+        public JavaCVDecomposingDirect_Thread(int startFrame, int endFrame, String videopath, int numberOfThreads) {
+            this.startFrame = startFrame;
+            this.endFrame = endFrame;
+            this.numberOfThreads = numberOfThreads;
+            this.videopath = videopath;
+        }
+
+        public void run() {
+            Log.d("Lightning Shower Debug:", "Первый кадр для потока: " + startFrame);
+            Bitmap bitmapVideoFrame;
+            Frame videoframe = null;
+            int currentFrame = 0;
+            String videofileName = getFileName(videopath);
+            OpenCVHandler openCVHandler = new OpenCVHandler();
+
+            int counterFrames = 0;   //счетчик кадров для секунд
+
+            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videopath);
+            AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
+
+            try {
+                grabber.start();
+                grabber.setFrameNumber(startFrame);
+            } catch (FrameGrabber.Exception e) {
+                e.printStackTrace();
+            }
+
+
+            while (currentFrame <= endFrame && framesCounterThrVer <= frames && !isStopped) {
+                //Log.d("Lightning Shower Debug:", "Шаг цикла");
+                try {
+                    videoframe = grabber.grab();
+
+                } catch (FrameGrabber.Exception e) {
+                    e.printStackTrace();
+                }
+
+                currentFrame = grabber.getFrameNumber();
+                try {
+                    grabber.setFrameNumber(currentFrame - 1);
+                } catch (FrameGrabber.Exception e) {
+                    e.printStackTrace();
+                }
+                Log.d("Lightning Shower Debug:", "Обрабатывался кадр: " + currentFrame);
+                secondsInMinuteCounterTheVer++;
+                // Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame);
+                //Log.d("Lightning Shower Debug:", "Считаем до секунд: " + secondsInMinuteCounterTheVer);
+                if (secondsInMinuteCounterTheVer == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
+                    secondsInMinuteCounterTheVer = 0;
+                    secondsCounterThrVer++;
+                    //  Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
+                }
+                bitmapVideoFrame = converterToBitmap.convert(videoframe);
+                framesCounterThrVer++;
+                // Log.d("Lightning Shower Debug:", "Кадр видео общий: " + framesCounterThrVer);
+
+
+                final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
+                if (openCVHandler.preparingBeforeFindContours(bitmapVideoFrame, currentFrame, videofileName, precision)) {
+                    lightningsCounterThrVer++;
+                }
+                refreshUIFunction(finalBitmapVideoFrame);
+
+                currentFrame += numberOfThreads - 1;
+                try {
+                    grabber.setFrameNumber(currentFrame);
+                } catch (FrameGrabber.Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            numberOfExecutedThreads++;
+            Log.d("Lightning Shower Debug:", "Поток отработал. Всего потоков отработало: " + numberOfExecutedThreads);
+
+            threadIsDone = true;
+
+
+        }
+
+    }
+
+
+    /**
+     * Класс-поток, реализует обработку кадров переданных в конструктор с помощью Google API
+     * MediaMetadataRetriever
+     * <p/>
+     * startFrame - номер кадра с которого начинается обработка
+     * endFrame - номер кадра на котором закончится обработка (включительно)
+     * videopath - путь к видео, позже уберу
+     */
+    protected class MediaMetadataRetrDecomposingDirect_Thread implements Runnable {
+        private int startFrame;
+        private int endFrame;
+        private String videopath;
+        private int frameStep;//специальная переменная для работы getFrameAtTime
+        private int frameFirst;//специальная переменная для работы getFrameAtTime
+        private int currentFrame = 0; //номер текущего кадра который обрабатывается
+
+        public boolean threadIsDone = false;
+
+
+        MediaMetadataRetriever mediaMetadata = new MediaMetadataRetriever();
+        OpenCVHandler openCVHandler = new OpenCVHandler();
+        OpenCV3Handler openCV3Handler = new OpenCV3Handler();
+        String videofileName;
+        Bitmap frame;
+
+        public MediaMetadataRetrDecomposingDirect_Thread(int startFrame, int endFrame, String videopath) {
+            //устанавливаем источник для mediadata
+            mediaMetadata.setDataSource(videopath);
+            frameStep = (int) (1000000 / frameRateDouble); //1000000/FPS - через каждые frameStep микросекунд следует брать новый кадр
+            frameFirst = (int) (10000000 / frameRateDouble);
+            this.startFrame = frameStep * startFrame;
+            // this.endFrame = frameStep * endFrame;
+            this.endFrame = frameDuration * endFrame;
+            this.videopath = videopath;
+            this.videofileName = getFileName(videopath);
+
+
+        }
+
+        public void run() {
+
+            int counterFrames = 0;
+            for (currentFrame = startFrame; currentFrame < endFrame; currentFrame += frameStep) {
+                if (isStopped) {
+                    break;
+                } else {
+                    secondsInMinuteCounterTheVer++;
+                    Log.d("Lightning Shower Debug:", "Кадр видео: " + currentFrame / frameStep);
+                    if (secondsInMinuteCounterTheVer == frameRate) {   //каждые FPS кадров сбрасываем счетчик кадров и добавляем секунду
+                        secondsInMinuteCounterTheVer = 0;
+                        secondsCounterThrVer++;
+                        Log.d("Lightning Shower Debug:", "Секунда видео: " + secondsCounterThrVer);
+                    }
+
+                    long startTime = System.currentTimeMillis();    //засекаем время получения кадра
+                    frame = mediaMetadata.getFrameAtTime(currentFrame, MediaMetadataRetriever.OPTION_CLOSEST);
+                    long endTime = System.currentTimeMillis();
+                    Log.d("Lightning Shower Debug:", "MMR: " + ((endTime - startTime) / 1000f));
+                    //Log.d("Lightning Shower Debug:", "gFAT: " + currentFrame);
+
+                    final Bitmap finalBitmapVideoFrame = frame;
+
+
                     //openCV3Handler.preparingBeforeFindContours(frame, currentFrame, videofileName);
                     if (openCVHandler.preparingBeforeFindContours(frame, currentFrame, videofileName, precision)) {
                         lightningsCounterThrVer++;

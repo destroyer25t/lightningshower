@@ -3,6 +3,7 @@ package com.example.dogan.ligntningshower;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -19,6 +20,8 @@ import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.Toast;
+
+import java.io.File;
 
 public class navdrawer extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private int typeOfHandling = 0;
@@ -139,7 +142,19 @@ public class navdrawer extends AppCompatActivity implements NavigationView.OnNav
             startActivity(intent);
 
         } else if (id == R.id.nav_about) {
+            Intent intent = new Intent();
+            intent.setClass(this, imagesGridView.class);
 
+
+            String ExternalStorageDirectoryPath = Environment
+                    .getExternalStorageDirectory()
+                    .getAbsolutePath();
+
+            String targetPath = ExternalStorageDirectoryPath + File.separator + "Movies" + File.separator + "320";
+
+            intent.putExtra("folderPath", targetPath);    //отправляем в активити адрес
+
+            startActivity(intent);
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);

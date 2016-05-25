@@ -13,7 +13,9 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/galleryHorLayout"></LinearLayout>
+            android:id="@+id/galleryHorLayout">
+
+        </LinearLayout>
     </ScrollView>
 
 
