@@ -59,14 +59,14 @@ public class imagesGridView extends AppCompatActivity {
             ImageView imageView;
             if (convertView == null) {  // if it's not recycled, initialize some attributes
                 imageView = new ImageView(mContext);
-                imageView.setLayoutParams(new GridView.LayoutParams(310, 310));
+                imageView.setLayoutParams(new GridView.LayoutParams(330, 330));
                 imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                imageView.setPadding(4, 4, 4, 4);
+                imageView.setPadding(1, 1, 1, 1);
             } else {
                 imageView = (ImageView) convertView;
             }
 
-            Bitmap bm = decodeSampledBitmapFromUri(itemList.get(position), 310, 310);
+            Bitmap bm = decodeSampledBitmapFromUri(itemList.get(position), 150, 150);
 
             imageView.setImageBitmap(bm);
             return imageView;
@@ -85,7 +85,7 @@ public class imagesGridView extends AppCompatActivity {
         myImageAdapter = new ImageAdapter(this);
         gridview.setAdapter(myImageAdapter);
 
-        // Capture gridview item click
+       /* // Capture gridview item click
         gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
@@ -98,11 +98,11 @@ public class imagesGridView extends AppCompatActivity {
                 startActivity(intent);
             }
 
-        });
+        });*/
 
         String targetPath = getIntent().getExtras().getString("folderPath");
 
-        Toast.makeText(getApplicationContext(), targetPath, Toast.LENGTH_LONG).show();
+        //Toast.makeText(getApplicationContext(), targetPath, Toast.LENGTH_LONG).show();
         File targetDirector = new File(targetPath);
 
         File[] files = targetDirector.listFiles();

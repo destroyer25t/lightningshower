@@ -8,6 +8,14 @@
         android:entries="@array/type_decomposing"
         android:entryValues="@array/type_decomposing"
         android:dialogTitle="Выберите тип разбиения видео на кадры" />
+    <ListPreference
+        android:key="pref_order_mode"
+        android:title="Очередность обработки кадров"
+        android:summary="Устанавливает в каком порядке кадры будут отправляться потоку: через каждое количество потоков или набором."
+        android:defaultValue="1"
+        android:entries="@array/type_decomposing_order"
+        android:entryValues="@array/type_decomposing_order"
+        android:dialogTitle="Выберите порядок отправки кадров потокам" />
     <EditTextPreference
         android:key="path_to_save"
         android:title="@string/path_to_save_all"

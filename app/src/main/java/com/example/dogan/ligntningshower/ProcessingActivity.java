@@ -61,7 +61,6 @@ public class ProcessingActivity extends AppCompatActivity {
     private Thread firstThread;
     private Thread lastThread;
     private Thread controlThread;
-    private Thread controlThreadDirect;
 
     private volatile int numberOfExecutedThreads = 0;     //увеличиваем при каждом завершившемся потоке
 
@@ -113,6 +112,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
         Button buttonStop = (Button) findViewById(R.id.buttonStop);
         String typeOfDecomposing = prefs.getString("pref_decompose_mode", "OPENCVdecomposing");
+        String typeOfOrder = prefs.getString("pref_order_mode", "Блоками");
 
         //получаем длительность видоса сразу же
         MediaMetadataRetriever mediaMetadataForGettingDuration = new MediaMetadataRetriever();
@@ -140,15 +140,18 @@ public class ProcessingActivity extends AppCompatActivity {
 
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
         horizontalprogress.setMax(frames);  //задаем длину прогресс-бара в количество кадров
-        // controlThread = new Thread(new ThreadControl(1)); //numOfCores
-        controlThreadDirect = new Thread(new ThreadControlDirect(numOfCores));
+        if (Objects.equals(typeOfOrder, "Блоками")) {
+            controlThread = new Thread(new ThreadControl(1)); //numOfCores
+        } else {
+            controlThread = new Thread(new ThreadControlDirect(numOfCores)); //numOfCores
+        }
 
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
             typeOfTask = 0;
-            controlThreadDirect.start();
+            controlThread.start();
         } else {
             typeOfTask = 1;
-            controlThreadDirect.start();
+            controlThread.start();
         }
 
     }
@@ -286,7 +289,8 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
             while (currentFrame <= endFrame && framesCounterThrVer <= frames && !isStopped) {
-                //Log.d("Lightning Shower Debug:", "Шаг цикла");
+                Log.d("Lightning Shower Debug:", "   ");
+                Log.d("Lightning Shower Debug:", "Шаг цикла");
                 try {
                     videoframe = grabber.grab();
 
@@ -314,10 +318,10 @@ public class ProcessingActivity extends AppCompatActivity {
                 }
                 refreshUIFunction(finalBitmapVideoFrame);
 
-                //Log.d("Lightning Shower Debug:", "Предыдущий кадр: " + previousFrame);
+                Log.d("Lightning Shower Debug:", "Предыдущий кадр: " + previousFrame);
                 if (previousFrame >= currentFrame) {
                     currentFrame += 2;
-                    //Log.d("Lightning Shower Debug:", "Попался проблемный. Увеличиваем на 2: " + currentFrame);
+                    Log.d("Lightning Shower Debug:", "Попался проблемный. Увеличиваем на 2: " + currentFrame);
                     try {
                         grabber.setFrameNumber(currentFrame);
                     } catch (FrameGrabber.Exception e) {

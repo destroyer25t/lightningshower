@@ -4,4 +4,8 @@
         <item>OPENCVdecomposing</item>
         <item>MediaMetadataRetriever</item>
     </string-array>
+    <string-array name="type_decomposing_order">
+        <item>Последовательно</item>
+        <item>Блоками</item>
+    </string-array>
 </resources>
