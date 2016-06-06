@@ -3,13 +3,14 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:elevation="2dp"
-    android:padding="3dp">
+    android:elevation="3dp"
+    android:padding="5dp"
+    android:translationZ="2dp"
+    style="@style/Widget.AppCompat.Light.ActionBar.TabView">
 
     <Button
         android:layout_width="fill_parent"
-        android:layout_height="80dp"
-        android:text="New Button"
+        android:layout_height="120dp"
         android:id="@+id/buttonFolder"
         android:textAlignment="gravity"
         android:textSize="20dp"
@@ -22,11 +23,12 @@
         android:text="Small Text"
         android:id="@+id/count"
         android:layout_marginLeft="5dp"
-        android:textSize="12dp"
-        android:layout_below="@+id/buttonFolder"
-        android:layout_alignParentStart="true"
+        android:textSize="11dp"
         android:layout_marginRight="5dp"
-        android:textAlignment="textStart" />
+        android:textAlignment="textStart"
+        android:layout_below="@+id/titleName"
+        android:layout_alignParentEnd="true"
+        android:paddingBottom="4dp" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -34,12 +36,36 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="Small Text"
         android:id="@+id/date"
-        android:textSize="12dp"
+        android:textSize="11dp"
         android:layout_gravity="right"
-        android:layout_below="@+id/buttonFolder"
-        android:layout_alignParentEnd="true"
-        android:paddingRight="2dp"
         android:layout_marginRight="5dp"
-        android:layout_marginBottom="5dp" />
+        android:paddingLeft="3dp"
+        android:layout_below="@+id/titleName"
+        android:layout_alignStart="@+id/titleName" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Medium Text"
+        android:id="@+id/titleName"
+        android:paddingLeft="3dp"
+        android:textColor="#212121"
+        android:layout_below="@+id/buttonFolder"
+        android:layout_toEndOf="@+id/imageView" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageView"
+        android:background="@color/colorAccent"
+        android:maxHeight="25dp"
+        android:minHeight="23dp"
+        android:maxWidth="5dp"
+        android:minWidth="5dp"
+        android:layout_alignTop="@+id/titleName"
+        android:layout_alignStart="@+id/buttonFolder"
+        android:layout_marginLeft="4dp"
+        android:layout_marginTop="7dp" />
 
 </RelativeLayout>

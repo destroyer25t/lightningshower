@@ -46,8 +46,7 @@ public class enchancedgallery extends AppCompatActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         hLayout.setPadding(1, 2, 1, 3);
 
-        int height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, r.getDisplayMetrics());
-        int heightBackButton = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 110, r.getDisplayMetrics());
+        int height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 120, r.getDisplayMetrics());
 
         for (File aFile : files)
             if (aFile.isDirectory() && aFile.listFiles().length != 0) {
@@ -55,11 +54,9 @@ public class enchancedgallery extends AppCompatActivity {
                 //получаем наш кастомный layout
                 final View view = getLayoutInflater().inflate(R.layout.folderview, null);
                 Button buttonOnFolderView = (Button) view.findViewById(R.id.buttonFolder);
+                TextView titleOnFolderView = (TextView) view.findViewById(R.id.titleName);
                 TextView countTVOnFolderView = (TextView) view.findViewById(R.id.count);
                 TextView dateTVOnFolderView = (TextView) view.findViewById(R.id.date);
-
-                //Button btn = new Button(this);  //кнопка верхнего слоя
-                //  TextView textView = new TextView(this);
 
                 //получаем информацию о файле
                 File file[] = aFile.listFiles();
@@ -70,17 +67,7 @@ public class enchancedgallery extends AppCompatActivity {
                 String countFiles = Integer.toString(aFile.listFiles().length); //количество фоток в папке(и файлов вообще)
                 Spanned text = (Html.fromHtml(aFile.getName()));
 
-                /*
-                //настройка кнопки верхнего слоя
-                btn.setLayoutParams(lButtonParams);
-                btn.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
-                btn.setTextColor(Color.WHITE);
-                btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24);
-                */
-
-                Bitmap bm = decodeSampledBitmapFromUri(firstFile.getAbsolutePath(), 800, height);
-                //Bitmap myBitmap = BitmapFactory.decodeFile(firstFile.getAbsolutePath());
-                //Bitmap croppedBitmap = Bitmap.createBitmap(myBitmap, 10, 10, myBitmap.getWidth()-10, height);
+                Bitmap bm = decodeSampledBitmapFromUri(firstFile.getAbsolutePath(), 780, height);
                 Drawable d = new BitmapDrawable(getResources(), bm);
                 buttonOnFolderView.setBackground(d);
 
@@ -96,16 +83,14 @@ public class enchancedgallery extends AppCompatActivity {
                         // Toast.makeText(getBaseContext(), "Click", Toast.LENGTH_SHORT).show();
                     }
                 });
-                buttonOnFolderView.setText(text);
+                //buttonOnFolderView.setText(text);
 
                 //настройка надписи под кнопкой
+                titleOnFolderView.setText(text);
                 countTVOnFolderView.setText(countFiles + " молний");
                 dateTVOnFolderView.setText(dateAndTime);
 
                 hLayout.addView(view);
-                //суем кнопки и надпись во фрейм и фрейм во фрейм
-                //  hLayout.addView(btn);
-                // hLayout.addView(textView);
             }
     }
 

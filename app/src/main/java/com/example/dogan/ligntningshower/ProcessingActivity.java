@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import static com.example.dogan.ligntningshower.SupportFunctions.deleteVideoAfterProcessing;
 import static com.example.dogan.ligntningshower.SupportFunctions.generateNotification;
 import static com.example.dogan.ligntningshower.SupportFunctions.getFileName;
 import static com.example.dogan.ligntningshower.SupportFunctions.getPath;
@@ -49,6 +50,7 @@ import static org.bytedeco.javacv.Parallel.getNumCores;
 public class ProcessingActivity extends AppCompatActivity {
 
     int typeOfTask;     //переменная в которой хранится выбор типа обработки
+    int typeOfHandling;
     Uri imageUri;       //путь URI до видео
     String videopath;   //путь до видео
     SharedPreferences prefs;    //настройки приложения
@@ -88,6 +90,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
         //различные инициализации, получение данных из родительского активити
         String tempUri = getIntent().getExtras().getString("imageUri");
+        typeOfHandling = getIntent().getExtras().getInt("tOfHand");
         imageUri = Uri.parse(tempUri);  //преобразуем полученный строкой Uri обратно в Uri
         videopath = getPath(this, imageUri);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -141,7 +144,7 @@ public class ProcessingActivity extends AppCompatActivity {
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
         horizontalprogress.setMax(frames);  //задаем длину прогресс-бара в количество кадров
         if (Objects.equals(typeOfOrder, "Блоками")) {
-            controlThread = new Thread(new ThreadControl(1)); //numOfCores
+            controlThread = new Thread(new ThreadControl(numOfCores)); //numOfCores
         } else {
             controlThread = new Thread(new ThreadControlDirect(numOfCores)); //numOfCores
         }
@@ -272,7 +275,7 @@ public class ProcessingActivity extends AppCompatActivity {
             int previousFrame = 0;
             String videofileName = getFileName(videopath);
             OpenCVHandler openCVHandler = new OpenCVHandler();
-            OpenCV3Handler openCV3Handler = new OpenCV3Handler();
+            //OpenCV3Handler openCV3Handler = new OpenCV3Handler();
 
             int counterFrames = 0;   //счетчик кадров для секунд
 
@@ -746,5 +749,13 @@ public class ProcessingActivity extends AppCompatActivity {
                 buttonStop.setVisibility(View.INVISIBLE);
             }
         });
+        if (typeOfHandling == 2) {
+            boolean isSaveSourceVideo;
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+            isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo", true);
+            if (!isSaveSourceVideo) {
+                deleteVideoAfterProcessing(this, imageUri);
+            }
+        }
     }
 }

@@ -104,6 +104,7 @@ public class navdrawer extends AppCompatActivity implements NavigationView.OnNav
                     imageUri = imageReturnedIntent.getData();               //получаем адрес медифайла
                     Intent processingVideoIntent = new Intent(navdrawer.this, ProcessingActivity.class);
                     processingVideoIntent.putExtra("imageUri", imageUri.toString());    //отправляем в активити адрес
+                    processingVideoIntent.putExtra("tOfHand", typeOfHandling);
                     startActivity(processingVideoIntent);
                 }
 
@@ -111,14 +112,7 @@ public class navdrawer extends AppCompatActivity implements NavigationView.OnNav
         }
 
         //TODO: функцию удаления надо переместить куда-то в другое место
-       /* if (typeOfHandling == 2) {
-            boolean isSaveSourceVideo;
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            isSaveSourceVideo = prefs.getBoolean("isSaveSourceVideo", true);
-            if (!isSaveSourceVideo) {
-                deleteVideoAfterProcessing(this, imageUri);
-            }
-        }*/
+
 
     }
 
