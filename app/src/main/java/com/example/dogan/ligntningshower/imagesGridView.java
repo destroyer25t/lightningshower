@@ -4,10 +4,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.Image;
 import android.net.Uri;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -35,6 +37,11 @@ public class imagesGridView extends AppCompatActivity {
 
         void add(String path) {
             itemList.add(path);
+        }
+
+        public String getPath(int position) {
+            String path = itemList.get(position);
+            return path;
         }
 
         @Override
@@ -85,20 +92,20 @@ public class imagesGridView extends AppCompatActivity {
         myImageAdapter = new ImageAdapter(this);
         gridview.setAdapter(myImageAdapter);
 
-       /* // Capture gridview item click
+        // Capture gridview item click
         gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-                String item = (String) parent.getItemAtPosition(position);
+                String item = myImageAdapter.getPath(position);
                 Intent intent = new Intent();
                 intent.setAction(Intent.ACTION_VIEW);
                 intent.setDataAndType(Uri.parse(item), "image/*");
                 startActivity(intent);
             }
 
-        });*/
+        });
 
         String targetPath = getIntent().getExtras().getString("folderPath");
 
@@ -109,6 +116,6 @@ public class imagesGridView extends AppCompatActivity {
         for (File file : files) {
             myImageAdapter.add(file.getAbsolutePath());
         }
-
+        Log.d("Lightning Shower Debug:", "was added");
     }
 }

@@ -20,7 +20,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import static com.example.dogan.ligntningshower.SupportFunctions.decodeSampledBitmapFromUri;
 
@@ -47,12 +49,17 @@ public class enchancedgallery extends AppCompatActivity {
         int height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, r.getDisplayMetrics());
         int heightBackButton = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 110, r.getDisplayMetrics());
 
-
         for (File aFile : files)
             if (aFile.isDirectory() && aFile.listFiles().length != 0) {
-                Button btn = new Button(this);  //кнопка верхнего слоя
-                FrameLayout backFrame = new FrameLayout(this);  //белая подложка
-                TextView textView = new TextView(this);
+
+                //получаем наш кастомный layout
+                final View view = getLayoutInflater().inflate(R.layout.folderview, null);
+                Button buttonOnFolderView = (Button) view.findViewById(R.id.buttonFolder);
+                TextView countTVOnFolderView = (TextView) view.findViewById(R.id.count);
+                TextView dateTVOnFolderView = (TextView) view.findViewById(R.id.date);
+
+                //Button btn = new Button(this);  //кнопка верхнего слоя
+                //  TextView textView = new TextView(this);
 
                 //получаем информацию о файле
                 File file[] = aFile.listFiles();
@@ -63,28 +70,23 @@ public class enchancedgallery extends AppCompatActivity {
                 String countFiles = Integer.toString(aFile.listFiles().length); //количество фоток в папке(и файлов вообще)
                 Spanned text = (Html.fromHtml(aFile.getName()));
 
-
+                /*
                 //настройка кнопки верхнего слоя
                 btn.setLayoutParams(lButtonParams);
-                btn.setHeight(height);
                 btn.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
                 btn.setTextColor(Color.WHITE);
-                btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 30);
-
-
-                backFrame.setElevation(2);
-                backFrame.setBackgroundColor(Color.WHITE);
-                backFrame.setPadding(1, 1, 1, 1);
+                btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24);
+                */
 
                 Bitmap bm = decodeSampledBitmapFromUri(firstFile.getAbsolutePath(), 800, height);
                 //Bitmap myBitmap = BitmapFactory.decodeFile(firstFile.getAbsolutePath());
                 //Bitmap croppedBitmap = Bitmap.createBitmap(myBitmap, 10, 10, myBitmap.getWidth()-10, height);
                 Drawable d = new BitmapDrawable(getResources(), bm);
-                btn.setBackground(d);
+                buttonOnFolderView.setBackground(d);
 
 
                 final String pathToAfile = aFile.getAbsolutePath();
-                btn.setOnClickListener(new View.OnClickListener() {
+                buttonOnFolderView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         Intent intent = new Intent();
@@ -94,21 +96,17 @@ public class enchancedgallery extends AppCompatActivity {
                         // Toast.makeText(getBaseContext(), "Click", Toast.LENGTH_SHORT).show();
                     }
                 });
-                btn.setText(text);
+                buttonOnFolderView.setText(text);
 
                 //настройка надписи под кнопкой
-                textView.setText(countFiles + " молний\n" + dateAndTime);
-                textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
-                textView.setLayoutParams(lButtonParams);
+                countTVOnFolderView.setText(countFiles + " молний");
+                dateTVOnFolderView.setText(dateAndTime);
+
+                hLayout.addView(view);
                 //суем кнопки и надпись во фрейм и фрейм во фрейм
-                backFrame.addView(btn);
-                backFrame.addView(textView);
-                hLayout.addView(backFrame);
                 //  hLayout.addView(btn);
                 // hLayout.addView(textView);
             }
-
     }
 
 }
-
