@@ -66,7 +66,7 @@ public class imagesGridView extends AppCompatActivity {
             ImageView imageView;
             if (convertView == null) {  // if it's not recycled, initialize some attributes
                 imageView = new ImageView(mContext);
-                imageView.setLayoutParams(new GridView.LayoutParams(330, 330));
+                imageView.setLayoutParams(new GridView.LayoutParams(350, 350));
                 imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 imageView.setPadding(1, 1, 1, 1);
             } else {
@@ -116,6 +116,6 @@ public class imagesGridView extends AppCompatActivity {
         for (File file : files) {
             myImageAdapter.add(file.getAbsolutePath());
         }
-        Log.d("Lightning Shower Debug:", "was added");
+        //Log.d("Lightning Shower Debug:", "was added");
     }
 }

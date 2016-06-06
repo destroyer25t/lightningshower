@@ -23,4 +23,5 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="title_activity_navdrawer">Lightning finder</string>
+    <string name="about_text">Приложение Lightning finder предназначено для удобного поиска молний в видео и сохранений их в виде изображений на ваше устройство. Выберите источник - камеру или уже сохраненное видео и просто ждите пока приложение его обработает. На выходе вас ждут кадры, на которых молния будет присутствовать с большой вероятностью.</string>
 </resources>

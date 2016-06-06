@@ -111,9 +111,6 @@ public class navdrawer extends AppCompatActivity implements NavigationView.OnNav
 
         }
 
-        //TODO: функцию удаления надо переместить куда-то в другое место
-
-
     }
 
 
@@ -137,17 +134,7 @@ public class navdrawer extends AppCompatActivity implements NavigationView.OnNav
 
         } else if (id == R.id.nav_about) {
             Intent intent = new Intent();
-            intent.setClass(this, imagesGridView.class);
-
-
-            String ExternalStorageDirectoryPath = Environment
-                    .getExternalStorageDirectory()
-                    .getAbsolutePath();
-
-            String targetPath = ExternalStorageDirectoryPath + File.separator + "Movies" + File.separator + "320";
-
-            intent.putExtra("folderPath", targetPath);    //отправляем в активити адрес
-
+            intent.setClass(this, about.class);
             startActivity(intent);
         }
 

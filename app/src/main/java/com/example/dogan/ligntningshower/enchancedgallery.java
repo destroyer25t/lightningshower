@@ -73,6 +73,13 @@ public class enchancedgallery extends AppCompatActivity {
 
 
                 final String pathToAfile = aFile.getAbsolutePath();
+                buttonOnFolderView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        
+                        return false;
+                    }
+                });
                 buttonOnFolderView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
