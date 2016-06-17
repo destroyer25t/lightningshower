@@ -25,15 +25,37 @@ public class OpenCVHandler {
     private boolean findCountoursDetection(double scaleCoeff, IplImage Iat, float precision) {
         CvMemStorage storage = cvCreateMemStorage(0);
         CvSeq contours = new CvSeq();
-        CvBox2D box;
+        //CvBox2D box;
+        CvRect rect = null;
         //находим контуры
         //long startTime = System.currentTimeMillis();    //засекаем время получения кадро
         int contoursCont = cvFindContours(Iat, storage, contours, sizeof(CvContour.class), CV_RETR_LIST, CV_LINK_RUNS, cvPoint(0, 0));
         //long endTime = System.currentTimeMillis();
         //Log.d("TRULALA", "Время работы cvFindContours: " + ((endTime - startTime) / 1000f));
 
-        int counter = 0;
+        if (contoursCont >= 0) {
+            for (CvSeq seq0 = contours; seq0 != null; seq0 = seq0.h_next()) {
+                double area = Math.abs(cvContourArea(seq0));    //площадь контура
+                double perim = cvContourPerimeter(seq0);    //периметр контура
+                double compact = area / (perim * perim);    //какая то придуманная формула для расчета компактности
+                //  Log.d("TRULALA", "Компактность контура: "+compact);
+                if (compact < 0.01 && area > scaleCoeff * 9) { //area>15
+                    rect = cvBoundingRect(seq0, 0);
+                    //Log.d("TRULALA", "rectHeight: "+rect.height()*3);
+                    // Log.d("TRULALA", "rectWidth: "+rect.width()*3);
+                    if ((rect.height() * 3 > Iat.height()) || (rect.height() > rect.width() * 3)) {
+                        rect.deallocate();
+                        storage.deallocate();
+                        contours.deallocate();
+                        return true;
+                    }
 
+                }
+
+            }
+        }
+
+        /*
         if (contoursCont >= 0) {
             for (CvSeq seq0 = contours; seq0 != null; seq0 = seq0.h_next()) {
                 box = cvMinAreaRect2(seq0, storage);
@@ -59,6 +81,7 @@ public class OpenCVHandler {
             }
 
         }
+        */
         storage.deallocate();
         contours.deallocate();
         return false;

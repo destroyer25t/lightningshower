@@ -8,6 +8,8 @@
         android:entries="@array/type_decomposing"
         android:entryValues="@array/type_decomposing"
         android:dialogTitle="Выберите тип разбиения видео на кадры" />
+
+    <!--
     <ListPreference
         android:key="pref_order_mode"
         android:title="Очередность обработки кадров"
@@ -15,16 +17,16 @@
         android:defaultValue="1"
         android:entries="@array/type_decomposing_order"
         android:entryValues="@array/type_decomposing_order"
-        android:dialogTitle="Выберите порядок отправки кадров потокам" />
-    <EditTextPreference
-        android:key="path_to_save"
-        android:title="@string/path_to_save_all"
-        android:summary="Папка в которую будут сохраняться готовые изображения"
-        android:defaultValue="14"
-        android:dialogTitle="Введите полный путь" />
+        android:dialogTitle="Выберите порядок отправки кадров потокам" /> -->
+    <!-- <EditTextPreference
+         android:key="path_to_save"
+         android:title="@string/path_to_save_all"
+         android:summary="Папка в которую будут сохраняться готовые изображения"
+         android:defaultValue="14"
+         android:dialogTitle="Введите полный путь" />-->
     <CheckBoxPreference
         android:defaultValue="false"
         android:key="isSaveSourceVideo"
         android:summary="Сохранять исходное видео при работе в режиме КАМЕРА"
-        android:title="@string/setting_issavesourcevideo"/>
+        android:title="@string/setting_issavesourcevideo" />
 </PreferenceScreen>

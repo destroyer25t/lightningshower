@@ -94,7 +94,7 @@ public class ProcessingActivity extends AppCompatActivity {
         imageUri = Uri.parse(tempUri);  //преобразуем полученный строкой Uri обратно в Uri
         videopath = getPath(this, imageUri);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String tempPrecision = prefs.getString("thresholdOfRecongintion", "0.86");
+        String tempPrecision = prefs.getString("thresholdOfRecongintion", "0.5");
         precision = Float.parseFloat(tempPrecision);
 
         try {
@@ -115,7 +115,7 @@ public class ProcessingActivity extends AppCompatActivity {
 
         Button buttonStop = (Button) findViewById(R.id.buttonStop);
         String typeOfDecomposing = prefs.getString("pref_decompose_mode", "OPENCVdecomposing");
-        String typeOfOrder = prefs.getString("pref_order_mode", "Блоками");
+        //String typeOfOrder = prefs.getString("pref_order_mode", "Блоками");
 
         //получаем длительность видоса сразу же
         MediaMetadataRetriever mediaMetadataForGettingDuration = new MediaMetadataRetriever();
@@ -143,11 +143,11 @@ public class ProcessingActivity extends AppCompatActivity {
 
         ProgressBar horizontalprogress = (ProgressBar) findViewById(R.id.progressBarFrames);
         horizontalprogress.setMax(frames);  //задаем длину прогресс-бара в количество кадров
-        if (Objects.equals(typeOfOrder, "Блоками")) {
+        // if (Objects.equals(typeOfOrder, "Блоками")) {
             controlThread = new Thread(new ThreadControl(numOfCores)); //numOfCores
-        } else {
-            controlThread = new Thread(new ThreadControlDirect(numOfCores)); //numOfCores
-        }
+        //} else {
+        //    controlThread = new Thread(new ThreadControlDirect(numOfCores)); //numOfCores
+        // }
 
         if (Objects.equals(typeOfDecomposing, "OPENCVdecomposing")) {
             typeOfTask = 0;
@@ -292,8 +292,8 @@ public class ProcessingActivity extends AppCompatActivity {
 
 
             while (currentFrame <= endFrame && framesCounterThrVer <= frames && !isStopped) {
-                Log.d("Lightning Shower Debug:", "   ");
-                Log.d("Lightning Shower Debug:", "Шаг цикла");
+                //Log.d("Lightning Shower Debug:", "   ");
+                //Log.d("Lightning Shower Debug:", "Шаг цикла");
                 try {
                     videoframe = grabber.grab();
 
@@ -312,7 +312,7 @@ public class ProcessingActivity extends AppCompatActivity {
                 }
                 bitmapVideoFrame = converterToBitmap.convert(videoframe);
                 framesCounterThrVer++;
-                Log.d("Lightning Shower Debug:", "Кадр видео общий: " + framesCounterThrVer);
+                // Log.d("Lightning Shower Debug:", "Кадр видео общий: " + framesCounterThrVer);
 
 
                 final Bitmap finalBitmapVideoFrame = bitmapVideoFrame;
@@ -321,10 +321,10 @@ public class ProcessingActivity extends AppCompatActivity {
                 }
                 refreshUIFunction(finalBitmapVideoFrame);
 
-                Log.d("Lightning Shower Debug:", "Предыдущий кадр: " + previousFrame);
+                // Log.d("Lightning Shower Debug:", "Предыдущий кадр: " + previousFrame);
                 if (previousFrame >= currentFrame) {
                     currentFrame += 2;
-                    Log.d("Lightning Shower Debug:", "Попался проблемный. Увеличиваем на 2: " + currentFrame);
+                    //    Log.d("Lightning Shower Debug:", "Попался проблемный. Увеличиваем на 2: " + currentFrame);
                     try {
                         grabber.setFrameNumber(currentFrame);
                     } catch (FrameGrabber.Exception e) {
